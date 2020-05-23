@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+
+import argparse
+import configparser
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import Path, PurePath
+from os.path import expanduser
+
+from pubs.config import load_conf
+from pubs.repo import Repository
+
+from dptrp1.dptrp1 import DigitalPaper
+
+
+class Document(object):
+
+    """A class describing a document in the pubs library.
+
+    Arguments
+    ----------
+    key : TODO
+    repo : TODO
+
+    """
+
+    def __init__(self, key, repo):
+        self._key = key
+        self._repo = repo
+        self._dpt_dir: str  # Remote directory
+        self._bib = repo.databroker.pull_bibentry(self._key)
+
+    def update_meta(self):
+        """Update metadata information"""
+        repo = self._repo
+        key = self._key
+        bib = self._bib[self._key]
+
+        # Get the needed information
+        if bib["type"] == "misc":
+            author = bib["organization"]
+            title = bib["title"]
+        else:
+            author = short_authors(bib)
+            title = bib["title"]
+
+        local_path = expanduser(repo.pull_docpath(key))
+
+        #  p1 = subprocess.Popen(
+        #      f"""exiftool -overwrite_original -all:all=''
+        #          '{local_path}'""",
+        #      shell=True,
+        #  )
+        #  p1.wait()
+
+        p2 = subprocess.Popen(
+            f"""exiftool -Title='{title}' \
+                -Author='{author}' \
+                -Creator='' \
+                -overwrite_original \
+                '{local_path}'""",
+            shell=True,
+        )
+        p2.wait()
+
+        p3 = subprocess.Popen(f"qpdf --linearize {local_path} tmp.pdf", shell=True)
+        p3.wait()
+
+        p4 = subprocess.Popen(f"mv tmp.pdf {local_path}", shell=True)
+        p4.wait()
+
+
+def short_authors(bibdata):
+    print(bibdata["author"])
+    try:
+        authors = [p for p in bibdata["author"]]
+        if len(authors) < 3:
+            return "; ".join(authors)
+        else:
+            return authors[0] + (" et al." if len(authors) > 1 else "")
+    except KeyError:  # When no author is defined
+        return ""
+
+
+if __name__ == "__main__":
+
+    pars = argparse.ArgumentParser(
+        description="Update metadata for pdf file corresponding to bibkey"
+    )
+
+    # General options for the script
+    pars.add_argument("library", help="Pubs configuration file", action="store")
+    pars.add_argument("citekey", help="Citation key", action="store")
+
+    arguments = pars.parse_args()
+
+    conf = load_conf(arguments.library)
+    repo_ = Repository(conf)
+
+    doc = Document(arguments.citekey, repo_)
+    doc.update_meta()

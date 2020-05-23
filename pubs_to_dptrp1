@@ -1,0 +1,309 @@
+#!/usr/bin/env python
+
+import argparse
+import configparser
+import re
+import subprocess
+import sys
+import unicodedata
+from pathlib import Path, PurePath
+from os.path import expanduser
+
+from pubs.config import load_conf
+from pubs.repo import Repository
+
+from dptrp1.dptrp1 import DigitalPaper
+
+HOME = Path.home()
+
+# Default paths for the deviceid and privatekey files
+DPT_ID = HOME / ".dpapp/deviceid.dat"
+DPT_KEY = HOME / ".dpapp/privatekey.dat"
+
+# Define folder structure for each type of document
+OUT_DEF = {
+    "article": {
+        "out_folder": "Articles",
+        "out_name": [["year", "title", "subtitle"], ["year", "title"]],
+    },
+    "report": {"out_folder": "Reports", "out_name": [["year", "title"]]},
+    "techreport": {"out_folder": "Reports", "out_name": [["year", "title"]]},
+    "inproceedings": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
+    "book": {"out_folder": "Books", "out_name": [["year", "title"]]},
+    "inbook": {
+        "out_folder": "Articles",
+        "out_name": [["year", "title", "subtitle"], ["year", "title"]],
+    },
+    "conference": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
+    "standard": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
+    "misc": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
+    "phdthesis": {"out_folder": "Thesis", "out_name": [["year", "author", "title"]]},
+    "mastersthesis": {
+        "out_folder": "Thesis",
+        "out_name": [["year", "author", "title"]],
+    },
+}
+
+
+class Document(object):
+
+    """A class describing a document in the pubs library.
+
+    It is used to upload the file to the DPT-RP1, as well as for downloading
+    notes and annotations to the original file.
+
+    Arguments
+    ----------
+    key : TODO
+    repo : TODO
+
+    """
+
+    def __init__(self, key, repo, lib_name):
+        self._key = key
+        self._repo = repo
+        self._dpt_dir: str  # Remote directory
+        self._bib = repo.databroker.pull_bibentry(self._key)
+        self._lib_name = lib_name
+
+    def to_dptrp1(self, dpt):
+        """Send the document to the DPT-RP1
+
+        A specific file structure is respected.
+
+        Parameters
+        ----------
+        dpt : `obj`:DigitalPaper
+
+
+        """
+        repo = self._repo
+        key = self._key
+        local_path = expanduser(repo.pull_docpath(key))
+
+        target_folder = self._get_target_folder()
+        name_file = self._gen_file_name()
+        remote_path = target_folder / name_file
+
+        dpt.new_folder(target_folder)
+
+        with open(local_path, "rb") as fh:
+            dpt.upload(fh, str(remote_path))
+
+    def get_annotations(self, dpt):
+        """Get pdf file with the annotations.
+
+        If such a file has been previously downloaded, see whether there
+        are any changes first.
+
+        Parameters
+        ----------
+        dpt : TODO
+
+
+        """
+        pass
+
+    def get_notes(self, dpt):
+        """Get notes associated with the document.
+
+        If such a file has been previously downloaded, see whether there
+        are any changes first.
+
+        Parameters
+        ----------
+        dpt : DPTRP1 object
+
+        """
+        pass
+
+    def _is_annotated(self):
+        """TODO: Docstring for _is_annotated.
+        Returns
+        -------
+        TODO
+
+        """
+        pass
+
+    def _exist_note(self):
+        """TODO: Docstring for _exist_note.
+        Returns
+        -------
+        TODO
+
+        """
+        pass
+
+    def _get_target_folder(self):
+        """Get the forlder where to save the document
+
+        Returns
+        -------
+        Path :
+            Target directory in DPT-RP1
+
+        """
+        key = self._key
+        d_type = self._bib[key]["type"]
+
+        # Define name of the target folder
+        if self._lib_name in [None, "main_library"]:
+            t_folder = "Document/" + OUT_DEF[d_type]["out_folder"]
+        else:
+            t_folder = "Document/" + self._lib_name.capitalize()
+
+        return PurePath(t_folder)
+
+    def _gen_file_name(self):
+        """TODO: Docstring for gen_file_name.
+
+        Returns
+        -------
+        Path :
+            Generate a name for the file to be sent to the DPT-RP1
+
+        """
+        key = self._key
+        d_type = self._bib[key]["type"]
+
+        # Define name of the target file
+        name_format = OUT_DEF[d_type]["out_name"]
+
+        entry = self._bib[key]
+
+        # Define out folder
+        for struct in name_format:
+            print(entry)
+            try:
+                out_name = "".join(slugify(entry[ix]) + "_" for ix in struct)
+                break
+            except:
+                pass
+
+        return PurePath(out_name + ".pdf")
+
+
+def connect_to_dpt(addr, dev_id=DPT_ID, dev_key=DPT_KEY):
+    """
+    Loads the key and client ID to authenticate with the DPT-RP1
+    """
+
+    with open(dev_id) as f:
+        client_id = f.readline().strip()
+
+    with open(dev_key) as f:
+        key = f.read()
+
+    dpt = DigitalPaper(addr)
+    dpt.authenticate(client_id, key)
+
+    return dpt
+
+
+def slugify(value):
+    """
+    Normalizes string, converts to lowercase, removes non-alpha characters,
+    and converts spaces to hyphens.
+    """
+    value = (
+        unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    )
+    value = re.sub(r"[^\w\s-]", "", value).strip().lower()
+    return re.sub(r"[-\s]+", "-", value)
+
+
+def to_dpt(args):
+
+    # Get the DPT IP address
+    addr = args.addr
+
+    try:
+        dpt_obj = connect_to_dpt(addr)
+    except OSError:
+        print(
+            "Unable to reach device, verify it is connected to the same network segment."
+        )
+        sys.exit(1)
+
+    citekey = args.citekey
+    library = args.library
+    m = re.search("(?<=/)([a-zA-Z0-9_-]+)\.[a-z]+$", library)
+    lib_name = m.group(1)
+
+    conf = load_conf(library)
+    repo = Repository(conf)
+
+    # Create document
+    doc = Document(key=citekey, repo=repo, lib_name=lib_name)
+
+    doc.to_dptrp1(dpt_obj)
+
+
+def sync_annotated_docs(args):
+
+    # Get the DPT IP address
+    addr = args.addr
+
+    try:
+        dpt_obj = connect_to_dpt(addr)
+    except OSError:
+        print(
+            "Unable to reach device, verify it is connected to the same network segment."
+        )
+        sys.exit(1)
+
+    library = arguments["library"]
+
+
+def get_dptrp1_addr():
+    sp = subprocess.run(
+        ["avahi-resolve", "-4", "-n", "digitalpaper.local"], stdout=subprocess.PIPE
+    )
+    stdout = sp.stdout.decode("UTF-8")
+    m = re.search("\\t[0-9\.]+\\n", stdout)
+    try:
+        addr = m.group()[1:-1]
+    except:
+        addr = None
+
+    return addr
+
+
+if __name__ == "__main__":
+
+    pars = argparse.ArgumentParser(
+        description="Send and receive pubs documents to and from a DPT-RP1"
+    )
+
+    # General options for the script
+    pars.add_argument(
+        "--library", help="Pubs configuration file", action="store", required=True
+    )
+    pars.add_argument(
+        "--addr",
+        help="IP Address of the DPT-RP1",
+        action="store",
+        default=get_dptrp1_addr(),
+    )
+
+    subparser = pars.add_subparsers(help="Commands:")
+
+    # Parser for the 'send' option
+    cmd_send = subparser.add_parser(
+        "send", help="Send publication associated to citekey to DPT-RP1"
+    )
+    cmd_send.add_argument(
+        "citekey", type=str, nargs="?", help="Citekey in the pubs library"
+    )
+    cmd_send.set_defaults(func=to_dpt)
+
+    # Parser for the 'sync' option
+    cmd_sync = subparser.add_parser(
+        "sync", help="Sync annotations associated to citekey from DPT-RP1"
+    )
+    cmd_sync.set_defaults(func=sync_annotated_docs)
+
+    # Call the selected function
+    arguments = pars.parse_args()
+    arguments.func(arguments)
