@@ -8,6 +8,8 @@ This is possible with `pubs`, for which you have to run `pubs` with the `-c` arg
 You could improve that with aliases I guess... or you could write a wofi interface to deal with it and add some other functionalities along the way :).
 That is wofi-pubs!
 
+![Wofi-pubs](imgs/screenshot_01.png)
+
 Currently wofi-pubs has the following features:
 
 * List references from different libraries
@@ -24,7 +26,6 @@ Currently wofi-pubs has the following features:
 * (pubs)[https://github.com/pubs/pubs/]
 * (dpt-rp1-py)[https://github.com/pierrecollignon/dpt-rp1-py] (Optional: to send files to Sony DPT-RP1)
 
-![Wofi-pubs](imgs/screenshot_01.png)
 
 
 ## Installation
