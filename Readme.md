@@ -24,6 +24,8 @@ Currently wofi-pubs has the following features:
 * (pubs)[https://github.com/pubs/pubs/]
 * (dpt-rp1-py)[https://github.com/pierrecollignon/dpt-rp1-py] (Optional: to send files to Sony DPT-RP1)
 
+![Wofi-pubs](imgs/screenshot_01.png)
+
 
 ## Installation
 
