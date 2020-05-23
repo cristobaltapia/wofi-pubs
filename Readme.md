@@ -36,8 +36,8 @@ cd wofi-pubs
 make install
 ```
 
-Wofi-pubs is installed per default under `~/.local/bin/wofi-pubs` and the rest of the needed files under `~/.local/lib/wofi-pubs/`.
-This directories can be modified with the environmental variables `INSTALL_BIN` and `INSTALL_LIB`, respectively.
+The default installation path for Wofi-pubs is `~/.local/bin/wofi-pubs`, while the rest of the needed files is installed under `~/.local/lib/wofi-pubs/`.
+These directories can be modified with the environmental variables `INSTALL_BIN` and `INSTALL_LIB`, respectively.
 
 
 ## Configuration
