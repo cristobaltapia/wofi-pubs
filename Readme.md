@@ -1,6 +1,6 @@
 # Wofi-pubs
 
-Wofi-pubs is a (wofi)[https://hg.sr.ht/~scoopta/wofi] interface for the (pubs)[https://github.com/pubs/pubs/] bibliography manager.
+Wofi-pubs is a [wofi](https://hg.sr.ht/~scoopta/wofi) interface for the [pubs](https://github.com/pubs/pubs/) bibliography manager.
 It allows to comfortably search for publications by filtering the entries as you type (that's what wofi does mainly).
 
 I mainly created this script to easily display the bibliographies stored in different `pubs` repos, since I wanted to keep different topics separated in different git repos.
@@ -19,18 +19,15 @@ Currently wofi-pubs has the following features:
 * Send reference and document per E-mail
 * Send the document to your Sony DPT-RP1
 
-
 ## Requirements
 
-* (wofi)[https://hg.sr.ht/~scoopta/wofi]
-* (pubs)[https://github.com/pubs/pubs/]
-* (dpt-rp1-py)[https://github.com/pierrecollignon/dpt-rp1-py] (Optional: to send files to Sony DPT-RP1)
-
-
+* [wofi](https://hg.sr.ht/~scoopta/wofi)
+* [pubs](https://github.com/pubs/pubs/)
+* [dpt-rp1-py](https://github.com/pierrecollignon/dpt-rp1-py) (Optional: to send files to Sony DPT-RP1)
 
 ## Installation
 
-```
+```bash
 git clone https://github.com/cristobaltapia/wofi-pubs.git
 cd wofi-pubs
 make install
@@ -38,7 +35,6 @@ make install
 
 The default installation path for `wofi-pubs` is `~/.local/bin/wofi-pubs`, while the rest of the needed files is installed under `~/.local/lib/wofi-pubs/`.
 These directories can be modified with the environmental variables `INSTALL_BIN` and `INSTALL_LIB`, respectively.
-
 
 ## Configuration
 
@@ -58,6 +54,7 @@ terminal_edit=termite
 ### Configuration to send files to Sony DPT-RP1
 
 A file has to be created under `~/.dappp/devices` listing different possible addresses to find the DPT-RP1, with the syntax `name: address` as:
+
 ```
 WiFi: 192.168.1.101
 Bluetooth: 172.25.47.1
