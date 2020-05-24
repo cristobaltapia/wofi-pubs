@@ -1,10 +1,10 @@
 # Wofi-pubs
 
 Wofi-pubs is a [wofi](https://hg.sr.ht/~scoopta/wofi) interface for the [pubs](https://github.com/pubs/pubs/) bibliography manager.
-It allows to comfortably search for publications by filtering the entries as you type (that's what wofi does mainly).
+It allows to comfortably search for publications by filtering the entries as you type (that's what wofi job).
 
-I mainly created this script to easily display the bibliographies stored in different `pubs` repos, since I wanted to keep different topics separated in different git repos.
-This is possible with `pubs`, for which you have to run `pubs` with the `-c` argument in order to choose a different configuration file.
+I mainly created this script to easily display the bibliographies managed by different `pubs` configuration files, since I wanted to keep different topics separated in different git repos.
+This is possible with `pubs` by running `pubs` with the `-c` argument, in order to choose a different configuration file.
 You could improve that with aliases I guess... or you could write a wofi interface to deal with it and add some other functionalities along the way :).
 That is wofi-pubs!
 
@@ -13,9 +13,12 @@ That is wofi-pubs!
 Currently wofi-pubs has the following features:
 
 * List references from different libraries
-* Add publication by different methods (DOI, bibfile, Arxiv, ISBN and manual entry)
-* Open the document
-* Edit the reference
+* Add references by different methods (DOI, bibfile, Arxiv, ISBN and manual entry)
+* Open documents
+* Edit references
+* Edit metadata of the PDF-files after importing them
+* Add tags
+* Filter by tags
 * Send reference and document per E-mail
 * Send the document to your Sony DPT-RP1
 
