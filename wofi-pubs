@@ -46,7 +46,7 @@ function list_publications() {
     printf " <b>Search tags</b>|"
     printf " <b>Sync. repo</b>|"
     local lib_conf=$1
-	${PUBS} -c ${lib_conf} list | (awk \
+    ${PUBS} -c ${lib_conf} list | (awk \
         '{
             gsub(/&/, "&amp;");
             key=$1; $1="";
@@ -231,14 +231,10 @@ function menu_more_actions() {
         }')
 
     case $selected in
-      'add document')
-          add_doc ${bibkey} ${lib_conf};;
-      'add tag')
-          add_tag ${bibkey} ${lib_conf};;
-      'send e-mail')
-          send_mail ${bibkey} ${lib_conf};;
-      'back')
-          menu_ref ${bibkey} ${lib_conf};;
+      "add document") add_doc ${bibkey} ${lib_conf};;
+           "add tag") add_tag ${bibkey} ${lib_conf};;
+       "send e-mail") send_mail ${bibkey} ${lib_conf};;
+              "back") menu_ref ${bibkey} ${lib_conf};;
     esac
 }
 
@@ -477,7 +473,7 @@ function add_doc() {
     # $MAKE_WRITABLE
     # Get doc directory of library
     doc_lib = $(cat $1 | awk '/^docsdir/ {print $3}')
-    ${UPDATE_METADATA} $2 "${doc_lib}/${1}.pdf"
+    ${UPDATE_METADATA} $2 ${1}
 }
 
 
