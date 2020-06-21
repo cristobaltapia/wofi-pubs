@@ -27,6 +27,10 @@ class WofiPubs:
         self._parse_config()
         self._libs_entries = dict()
 
+        wofi_options = ["--allow-markup", "--insensitive", r"-Ddmenu-separator=\\0"]
+
+        self._wofi = Wofi(width=1200, rofi_args=wofi_options)
+
     def _parse_config(self):
         """Parse the configuration file."""
         config_file = self._config
@@ -83,19 +87,60 @@ class WofiPubs:
 
         keys = [p.citekey for p in repo.all_papers()]
 
-        for paper in repo.all_papers():
-            bibdata = paper.bibdata
-
-        wofi_options = [
-            "--allow-markup",
-            "--insensitive",
-            r"-Ddmenu-separator=\\0"
-        ]
-
-        wofi = Wofi(width=1200, rofi_args=wofi_options)
+        wofi = self._wofi
         selected = wofi.select("Literature", menu_entries, keep_newlines=True)
 
-        citekey = keys[selected[0]]
+        if selected[0] != -1:
+            citekey = keys[selected[0]]
+            self.menu_reference(repo, citekey)
+
+    def menu_reference(self, repo, citekey):
+        """Menu to show the information of a given reference.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        menu_ = [
+            ("", "Open"),
+            ("", "Export"),
+            ("", "Send to DPT-RP1"),
+            ("", "From same author(s)"),
+            ("", "Edit"),
+            ("", "Back"),
+            ("", "More actions"),
+        ]
+
+        menu_str = "".join(f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
+        menu_str += "\0"
+
+        paper_info = self._get_reference_info(repo, citekey)
+
+        wofi_disp = menu_str + paper_info
+
+        wofi = self._wofi
+        wofi.width = 800
+
+        selected = wofi.select("...", wofi_disp, keep_newlines=True)
+
+        option = menu_[selected[0]][1]
+
+        if option == "Open":
+            pass
+        elif option == "Back":
+            self.menu_main()
+        elif option == "Edit":
+            pass
+        elif option == "Export":
+            pass
+        elif option == "Send to DPT-RP1":
+            pass
 
     def _gen_menu_entries(self, repo):
         """Generate menu entries for the library items.
@@ -131,6 +176,59 @@ class WofiPubs:
                      f"<tt>   </tt><i>{title}</i>\0")
 
             yield entry
+
+    def _get_reference_info(self, repo, citekey):
+        """Generate content of the reference menu.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        paper = repo.pull_paper(citekey)
+        bibdata = paper.bibdata
+
+        if "author" in bibdata:
+            author = "; ".join(bibdata["author"])
+        else:
+            author = "; ".join(bibdata["editor"])
+
+        title = bibdata["title"]
+        year = bibdata["year"]
+
+        metadata = paper.metadata
+
+        if metadata["docfile"] is None:
+            pdf = False
+        else:
+            pdf = True
+
+        if "subtitle" in bibdata:
+            sub = bibdata["subtitle"]
+        else:
+            sub = None
+
+        au = "Author(s):"
+        ti = "Title:"
+        su = "Subtitle:"
+        ye = "Year:"
+
+        if sub is None:
+            entry = (f" <tt><b>{au:<11}</b></tt>\t {author}\0" +
+                     f" <tt><b>{ti:<11}</b></tt>\t {title}\0" +
+                     f" <tt><b>{ye:<11}</b></tt>\t {year}\0")
+        else:
+            entry = (f" <tt><b>{au:<11}</b></tt>\t {author}\0" +
+                     f" <tt><b>{ti:<11}</b></tt>\t {title}\0" +
+                     f" <tt><b>{su:<11}</b></tt>\t {sub}\0" +
+                     f" <tt><b>{ye:<11}</b></tt>\t {year}\0")
+
+        return entry
 
 
 if __name__ == "__main__":
