@@ -4,10 +4,12 @@ import configparser
 import sys
 from os.path import expandvars
 import os
+from dataclasses import dataclass
 
 from pubs import endecoder
 from pubs.config import load_conf
 from pubs.repo import Repository
+from pubs.commands.doc_cmd import command
 from rofi import Wofi
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
@@ -132,7 +134,7 @@ class WofiPubs:
         option = menu_[selected[0]][1]
 
         if option == "Open":
-            pass
+            self._open_doc(repo, citekey)
         elif option == "Back":
             self.menu_main()
         elif option == "Edit":
@@ -229,6 +231,30 @@ class WofiPubs:
                      f" <tt><b>{ye:<11}</b></tt>\t {year}\0")
 
         return entry
+
+    def _open_doc(self, repo, citekey):
+        """Open pdf file.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        args = Args([citekey], "open", self._pdfviewer)
+        command(repo.conf, args)
+
+        return 1
+
+@dataclass
+class Args:
+    citekey : str
+    action : str
+    cmd : str
 
 
 if __name__ == "__main__":
