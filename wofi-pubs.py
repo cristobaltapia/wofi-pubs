@@ -5,10 +5,14 @@ import os
 import subprocess
 import sys
 from os.path import expandvars
+from pubs.endecoder import EnDecoder
 
+from pubs.paper import Paper
+from pubs.uis import PrintUI, InputUI
 from pubs import content, endecoder
 from pubs.config import load_conf
 from pubs.repo import Repository
+from pubs.events import ModifyEvent
 
 from rofi import Wofi
 
@@ -138,7 +142,7 @@ class WofiPubs:
         elif option == "Back":
             self.menu_main()
         elif option == "Edit":
-            pass
+            self._edit_bib(repo, citekey)
         elif option == "Export":
             pass
         elif option == "Send to DPT-RP1":
@@ -254,7 +258,74 @@ class WofiPubs:
 
         return 1
 
+    def _edit_bib(self, repo, citekey):
+        """Edit bibfile corresponding to the citekey.
 
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        paper = repo.pull_paper(citekey)
+        coder = EnDecoder()
+        encode = coder.encode_bibdata
+        decode = coder.decode_bibdata
+        suffix = '.bib'
+        raw_content = encode(paper.bibentry)
+
+        ui = InputUI(repo.conf)
+        ui.editor = self._terminal + " -vv -t 'Pubs edit' -e nvim"
+
+        while True:
+            # Get new content from user
+            raw_content = ui.editor_input(initial=raw_content, suffix=suffix)
+            # Parse new content
+            try:
+                content = decode(raw_content)
+
+                new_paper = Paper.from_bibentry(content,
+                                                metadata=paper.metadata)
+                if repo.rename_paper(new_paper, old_citekey=paper.citekey):
+                    ui.info(('Paper `{}` was successfully edited and renamed '
+                             'as `{}`.'.format(citekey, new_paper.citekey)))
+                else:
+                    ui.info(('Paper `{}` was successfully edited.'.format(
+                        citekey)))
+                break
+
+            except coder.BibDecodingError:
+                if not ui.input_yn(question="Error parsing bibdata. Edit again?"):
+                    ui.error("Aborting, paper not updated.")
+                    ui.exit()
+
+            except repo.CiteKeyCollision:
+                options = ['overwrite', 'edit again', 'abort']
+                choice = options[ui.input_choice(
+                    options, ['o', 'e', 'a'],
+                    question='A paper already exists with this citekey.'
+                )]
+
+                if choice == 'abort':
+                    break
+                elif choice == 'overwrite':
+                    paper = repo.push_paper(paper, overwrite=True)
+                    ui.info(('Paper `{}` was overwritten.'.format(citekey)))
+                    break
+                # else edit again
+            # Also handle malformed bibtex and metadata
+
+        ModifyEvent(citekey, "bibtex").send()
+        repo.close()
+
+
+class EditArgs:
+    citekey: str
+    meta: str = None
 
 if __name__ == "__main__":
     pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
