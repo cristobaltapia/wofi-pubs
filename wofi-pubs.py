@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import argparse
 import configparser
+import os
+import subprocess
 import sys
 from os.path import expandvars
-import os
-from dataclasses import dataclass
 
-from pubs import endecoder
+from pubs import content, endecoder
 from pubs.config import load_conf
 from pubs.repo import Repository
-from pubs.commands.doc_cmd import command
+
 from rofi import Wofi
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
@@ -245,16 +245,15 @@ class WofiPubs:
         TODO
 
         """
-        args = Args([citekey], "open", self._pdfviewer)
-        command(repo.conf, args)
+        paper = repo.pull_paper(citekey)
+
+        docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
+        cmd = self._pdfviewer.split()
+        cmd.append(docpath)
+        subprocess.Popen(cmd)
 
         return 1
 
-@dataclass
-class Args:
-    citekey : str
-    action : str
-    cmd : str
 
 
 if __name__ == "__main__":
