@@ -5,14 +5,14 @@ import os
 import subprocess
 import sys
 from os.path import expandvars
-from pubs.endecoder import EnDecoder
 
-from pubs.paper import Paper
-from pubs.uis import PrintUI, InputUI
 from pubs import content, endecoder
 from pubs.config import load_conf
-from pubs.repo import Repository
+from pubs.endecoder import EnDecoder
 from pubs.events import ModifyEvent
+from pubs.paper import Paper
+from pubs.repo import Repository
+from pubs.uis import InputUI, PrintUI
 
 from rofi import Wofi
 
@@ -33,9 +33,20 @@ class WofiPubs:
         self._parse_config()
         self._libs_entries = dict()
 
-        wofi_options = ["--allow-markup", "--insensitive", r"-Ddmenu-separator=\\0"]
+        wofi_options = [
+            "--allow-markup",
+            "--insensitive",
+            r"-Ddmenu-separator=\\0",
+        ]
+        wofi_options_ref = [
+            "--allow-markup",
+            "--insensitive",
+            r"-Ddmenu-separator=\\0",
+            "--define=line_wrap=word",
+        ]
 
         self._wofi = Wofi(width=1200, rofi_args=wofi_options)
+        self._wofi_ref = Wofi(width=800, rofi_args=wofi_options_ref)
 
     def _parse_config(self):
         """Parse the configuration file."""
@@ -94,6 +105,8 @@ class WofiPubs:
         keys = [p.citekey for p in repo.all_papers()]
 
         wofi = self._wofi
+        wofi.width = 1200
+        wofi.height = 800
         selected = wofi.select("Literature", menu_entries, keep_newlines=True)
 
         if selected[0] != -1:
@@ -130,8 +143,8 @@ class WofiPubs:
 
         wofi_disp = menu_str + paper_info
 
-        wofi = self._wofi
-        wofi.width = 800
+        wofi = self._wofi_ref
+        wofi.lines = 16
 
         selected = wofi.select("...", wofi_disp, keep_newlines=True)
 
@@ -144,7 +157,7 @@ class WofiPubs:
         elif option == "Edit":
             self._edit_bib(repo, citekey)
         elif option == "Export":
-            pass
+            self._export_bib(repo, citekey)
         elif option == "Send to DPT-RP1":
             pass
 
@@ -225,14 +238,14 @@ class WofiPubs:
         ye = "Year:"
 
         if sub is None:
-            entry = (f" <tt><b>{au:<11}</b></tt>\t {author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\t {title}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\t {year}\0")
+            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
+                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
+                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
         else:
-            entry = (f" <tt><b>{au:<11}</b></tt>\t {author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\t {title}\0" +
-                     f" <tt><b>{su:<11}</b></tt>\t {sub}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\t {year}\0")
+            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
+                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
+                     f" <tt><b>{su:<11}</b></tt>\n{sub}\0" +
+                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
 
         return entry
 
@@ -288,14 +301,12 @@ class WofiPubs:
             try:
                 content = decode(raw_content)
 
-                new_paper = Paper.from_bibentry(content,
-                                                metadata=paper.metadata)
+                new_paper = Paper.from_bibentry(content, metadata=paper.metadata)
                 if repo.rename_paper(new_paper, old_citekey=paper.citekey):
                     ui.info(('Paper `{}` was successfully edited and renamed '
                              'as `{}`.'.format(citekey, new_paper.citekey)))
                 else:
-                    ui.info(('Paper `{}` was successfully edited.'.format(
-                        citekey)))
+                    ui.info(('Paper `{}` was successfully edited.'.format(citekey)))
                 break
 
             except coder.BibDecodingError:
@@ -307,8 +318,7 @@ class WofiPubs:
                 options = ['overwrite', 'edit again', 'abort']
                 choice = options[ui.input_choice(
                     options, ['o', 'e', 'a'],
-                    question='A paper already exists with this citekey.'
-                )]
+                    question='A paper already exists with this citekey.')]
 
                 if choice == 'abort':
                     break
@@ -322,10 +332,35 @@ class WofiPubs:
         ModifyEvent(citekey, "bibtex").send()
         repo.close()
 
+    def _export_bib(self, repo, citekey):
+        """Export citation in bib format.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        paper = repo.pull_paper(citekey)
+
+        bib = dict()
+        bib[citekey] = paper.bibdata
+
+        exporter = EnDecoder()
+        bibdata_raw = exporter.encode_bibdata(bib, ignore_fields=["file"])
+
+        cmd = ["wl-copy", f"{bibdata_raw}"]
+        subprocess.Popen(cmd)
+
 
 class EditArgs:
     citekey: str
     meta: str = None
+
 
 if __name__ == "__main__":
     pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
