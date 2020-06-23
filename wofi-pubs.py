@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 from os.path import expandvars
+from itertools import chain
 
 from pubs import content, endecoder
 from pubs.config import load_conf
@@ -93,6 +94,15 @@ class WofiPubs:
         TODO
 
         """
+        menu_ = [
+            ("", "Change library"),
+            ("", "Add publication"),
+            ("", "Search tags"),
+            ("", "Sync. repo(s)"),
+        ]
+
+        menu_str = (f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
+
         if library == "default":
             conf = load_conf(self._default_lib)
         else:
@@ -102,16 +112,28 @@ class WofiPubs:
 
         menu_entries = self._gen_menu_entries(repo)
 
+        wofi_disp = chain(menu_str, menu_entries)
+
         keys = [p.citekey for p in repo.all_papers()]
 
         wofi = self._wofi
         wofi.width = 1200
         wofi.height = 800
-        selected = wofi.select("Literature", menu_entries, keep_newlines=True)
+        selected = wofi.select("Literature", wofi_disp, keep_newlines=True)
 
-        if selected[0] != -1:
-            citekey = keys[selected[0]]
+        if selected[0] > 3:
+            citekey = keys[selected[0] - len(menu_)]
             self.menu_reference(repo, citekey)
+        elif selected[0] != -1 and selected[0] > 3:
+            option = menu_[selected[0]][1]
+            if option == "Change library":
+                pass
+            elif option == "Add publication":
+                pass
+            elif option == "Search tags":
+                pass
+            elif option == "Sync. repo(s)":
+                pass
 
     def menu_reference(self, repo, citekey):
         """Menu to show the information of a given reference.
@@ -159,6 +181,8 @@ class WofiPubs:
         elif option == "Export":
             self._export_bib(repo, citekey)
         elif option == "Send to DPT-RP1":
+            pass
+        elif option == "Send in E-Mail":
             pass
 
     def _gen_menu_entries(self, repo):
@@ -282,6 +306,10 @@ class WofiPubs:
         Returns
         -------
         TODO
+
+        Note
+        ----
+        Most of the code was taken directly from pubs.
 
         """
         paper = repo.pull_paper(citekey)
