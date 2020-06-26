@@ -86,13 +86,15 @@ class WofiPubs:
         self._cache_libs = expandvars(conf_.get("CACHE_LIBS"))
         self._terminal = conf_.get("TERMINAL_EDIT")
 
-    def menu_main(self, library="default"):
+    def menu_main(self, library="default", tag=None):
         """Present the main menu for the given library.
 
         Parameters
         ----------
         library : str
             The default library.
+        tag : str
+            Present only documents with the given tag.
 
         Returns
         -------
@@ -106,6 +108,9 @@ class WofiPubs:
             ("", "Sync. repo(s)"),
         ]
 
+        if tag:
+            menu_.insert(0, ("", "Show all"))
+
         menu_str = (f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
 
         if library == "default":
@@ -115,7 +120,7 @@ class WofiPubs:
 
         repo = Repository(conf)
 
-        menu_entries = self._gen_menu_entries(repo)
+        menu_entries = self._gen_menu_entries(repo, tag)
 
         wofi_disp = chain(menu_str, menu_entries)
 
@@ -126,19 +131,21 @@ class WofiPubs:
         wofi.height = 800
         selected = wofi.select("Literature", wofi_disp, keep_newlines=True)
 
-        if selected[0] > 3:
+        if selected[0] >= len(menu_):
             citekey = keys[selected[0] - len(menu_)]
             self.menu_reference(repo, citekey)
-        elif selected[0] != -1 and selected[0] > 3:
+        elif selected[0] != -1 and selected[0] < len(menu_):
             option = menu_[selected[0]][1]
             if option == "Change library":
-                pass
+                self.menu_change_lib(library)
             elif option == "Add publication":
                 pass
             elif option == "Search tags":
-                pass
+                self.menu_tags(repo,library)
             elif option == "Sync. repo(s)":
                 pass
+            elif option == "Show all":
+                self.menu_main(library)
 
     def menu_reference(self, repo, citekey):
         """Menu to show the information of a given reference.
@@ -253,6 +260,10 @@ class WofiPubs:
         """
 
         for paper in repo.all_papers():
+            if tag:
+                if tag not in paper.tags:
+                    continue
+
             bibdata = paper.bibdata
             if "author" in bibdata:
                 au = "; ".join(bibdata["author"])
