@@ -101,17 +101,22 @@ class WofiPubs:
         TODO
 
         """
+        if tag:
+            tag_post = f"(<i>{tag}</i>)"
+        else:
+            tag_post = ""
+
         menu_ = [
-            ("", "Change library"),
-            ("", "Add publication"),
-            ("", "Search tags"),
-            ("", "Sync. repo(s)"),
+            ("", "Change library", ""),
+            ("", "Add publication", ""),
+            ("", "Search tags", f"{tag_post}"),
+            ("", "Sync. repo(s)", ""),
         ]
 
         if tag:
-            menu_.insert(0, ("", "Show all"))
+            menu_.insert(0, ("", "Show all", ""))
 
-        menu_str = (f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
+        menu_str = (f"{ico}\t <b>{opt}</b> {inf}\0" for ico, opt, inf in menu_)
 
         if library == "default":
             conf = load_conf(self._default_lib)
@@ -133,7 +138,7 @@ class WofiPubs:
 
         if selected[0] >= len(menu_):
             citekey = keys[selected[0] - len(menu_)]
-            self.menu_reference(repo, citekey)
+            self.menu_reference(repo, citekey, tag)
         elif selected[0] != -1 and selected[0] < len(menu_):
             option = menu_[selected[0]][1]
             if option == "Change library":
@@ -147,7 +152,7 @@ class WofiPubs:
             elif option == "Show all":
                 self.menu_main(library)
 
-    def menu_reference(self, repo, citekey):
+    def menu_reference(self, repo, citekey, tag):
         """Menu to show the information of a given reference.
 
         Parameters
@@ -187,7 +192,7 @@ class WofiPubs:
         if option == "Open":
             self._open_doc(repo, citekey)
         elif option == "Back":
-            self.menu_main()
+            self.menu_main(tag=tag)
         elif option == "Edit":
             self._edit_bib(repo, citekey)
         elif option == "Export":
