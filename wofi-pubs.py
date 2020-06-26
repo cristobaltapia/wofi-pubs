@@ -45,9 +45,14 @@ class WofiPubs:
             r"-Ddmenu-separator=\\0",
             "--define=line_wrap=word",
         ]
+        wofi_options_misc = [
+            "--allow-markup",
+            "--insensitive",
+        ]
 
         self._wofi = Wofi(width=1200, rofi_args=wofi_options)
         self._wofi_ref = Wofi(width=800, rofi_args=wofi_options_ref)
+        self._wofi_misc = Wofi(width=600, rofi_args=wofi_options_misc)
 
     def _parse_config(self):
         """Parse the configuration file."""
@@ -185,7 +190,56 @@ class WofiPubs:
         elif option == "Send in E-Mail":
             pass
 
-    def _gen_menu_entries(self, repo):
+    def menu_change_lib(self, library):
+        """Present menu to change library.
+
+        Parameters
+        ----------
+        library : str
+            Current library
+
+        Returns
+        -------
+        TODO
+
+        """
+        configs_dir = self._config_dir
+        configs_files = os.listdir(configs_dir)
+
+        wofi = self._wofi_misc
+        wofi.lines = max([len(configs_files), 10])
+
+        selected = wofi.select("...", configs_files, keep_newlines=False)
+
+        sel_lib = self._config_dir + "/" + configs_files[selected[0]]
+
+        # Call the main menu with the selected library
+        self.menu_main(sel_lib)
+
+    def menu_tags(self, repo, library):
+        """Present menu with existing tags in the library.
+
+        Parameters
+        ----------
+        repo : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        tags = list(repo.get_tags())
+
+        wofi = self._wofi_misc
+        wofi.lines = min([len(tags), 15])
+
+        selected = wofi.select("Search tags...", tags)
+
+        sel_tag = tags[selected[0]]
+
+        self.menu_main(library, sel_tag)
+
+    def _gen_menu_entries(self, repo, tag):
         """Generate menu entries for the library items.
 
         Parameters
