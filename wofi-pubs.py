@@ -128,7 +128,7 @@ class WofiPubs:
 
         wofi = self._wofi
         wofi.width = 1200
-        wofi.height = 800
+        wofi.height = 700
         selected = wofi.select("Literature", wofi_disp, keep_newlines=True)
 
         if selected[0] >= len(menu_):
@@ -267,8 +267,14 @@ class WofiPubs:
             bibdata = paper.bibdata
             if "author" in bibdata:
                 au = "; ".join(bibdata["author"])
-            else:
+            elif "editor" in bibdata:
                 au = "; ".join(bibdata["editor"])
+            elif "key" in bibdata:
+                au = bibdata["key"]
+            elif "organization" in bibdata:
+                au = bibdata["organization"]
+            else:
+                au = "N.N."
 
             title = bibdata["title"]
             year = bibdata["year"]
@@ -303,8 +309,14 @@ class WofiPubs:
 
         if "author" in bibdata:
             author = "; ".join(bibdata["author"])
-        else:
+        elif "editor" in bibdata:
             author = "; ".join(bibdata["editor"])
+        elif "key" in bibdata:
+            author = bibdata["key"]
+        elif "organization" in bibdata:
+            author = bibdata["organization"]
+        else:
+            author = "N.N."
 
         title = bibdata["title"]
         year = bibdata["year"]
@@ -448,11 +460,6 @@ class WofiPubs:
 
         cmd = ["wl-copy", f"{bibdata_raw}"]
         subprocess.Popen(cmd)
-
-
-class EditArgs:
-    citekey: str
-    meta: str = None
 
 
 if __name__ == "__main__":
