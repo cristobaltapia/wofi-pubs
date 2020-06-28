@@ -66,13 +66,14 @@ class WofiPubs:
 
         # Add default options
         config_parser["DEFAULT"] = {
-            "PDFVIEWER": "zathura",
-            "WOFI": "/usr/bin/wofi",
-            "CONFIGS_DIR": "$HOME/.config/pubs",
-            "DEFAULT_LIB": "$HOME/.config/pubs/main_lib.conf",
-            "CACHE_AUTH": "$HOME/.local/tmp/pubs_wofi_auth",
-            "CACHE_LIBS": "$HOME/.local/tmp/pubs_wofi_libs",
-            "TERMINAL_EDIT": "termite",
+            "pdfviewer": "zathura",
+            "wofi": "/usr/bin/wofi",
+            "configs_dir": "$HOME/.config/pubs",
+            "default_lib": "$HOME/.config/pubs/main_lib.conf",
+            "cache_auth": "$HOME/.local/tmp/pubs_wofi_auth",
+            "cache_libs": "$HOME/.local/tmp/pubs_wofi_libs",
+            "terminal_edit": "$TERM -e nvim",
+            "editor": "$TERM -e nvim",
         }
 
         conf_ = config_parser["general"]
@@ -80,11 +81,12 @@ class WofiPubs:
         # Read the configuration file
         self._pdfviewer = conf_.get("PDFVIEWER")
         self._wofi = conf_.get("WOFI")
-        self._config_dir = expandvars(conf_.get("CONFIGS_DIR"))
-        self._default_lib = expandvars(conf_.get("DEFAULT_LIB"))
-        self._cache_auth = expandvars(conf_.get("CACHE_AUTH"))
-        self._cache_libs = expandvars(conf_.get("CACHE_LIBS"))
+        self._config_dir = expandvars(conf_.get("configs_dir"))
+        self._default_lib = expandvars(conf_.get("default_lib"))
+        self._cache_auth = expandvars(conf_.get("cache_auth"))
+        self._cache_libs = expandvars(conf_.get("cache_libs"))
         self._terminal = conf_.get("TERMINAL_EDIT")
+        self._editor = expandvars(conf_.get("editor"))
 
     def menu_main(self, library="default", tag=None):
         """Present the main menu for the given library.
@@ -402,7 +404,7 @@ class WofiPubs:
         raw_content = encode(paper.bibentry)
 
         ui = InputUI(repo.conf)
-        ui.editor = self._terminal + " -vv -t 'Pubs edit' -e nvim"
+        ui.editor = self._editor
 
         while True:
             # Get new content from user
