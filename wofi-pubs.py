@@ -9,11 +9,17 @@ from itertools import chain
 
 from pubs import content, endecoder
 from pubs.config import load_conf
+from pubs import plugins
 from pubs.endecoder import EnDecoder
 from pubs.events import ModifyEvent
 from pubs.paper import Paper
 from pubs.repo import Repository
 from pubs.uis import InputUI, PrintUI
+from pubs.commands.edit_cmd import command as edit_cmd
+from pubs.uis import init_ui
+from pubs.uis import _ui
+from pubs import uis
+from pubs import events
 
 from rofi import Wofi
 
@@ -88,6 +94,26 @@ class WofiPubs:
         self._terminal = conf_.get("TERMINAL_EDIT")
         self._editor = expandvars(conf_.get("editor"))
 
+    def load_conf(self, library):
+        """Load configuration file in pubs.
+
+        Parameters
+        ----------
+        config : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        conf = load_conf(library)
+        conf['main']['edit_cmd'] = self._editor
+        conf.write()
+        init_ui(conf)
+        plugins.load_plugins(conf, uis._ui)
+
+        return conf
+
     def menu_main(self, library="default", tag=None):
         """Present the main menu for the given library.
 
@@ -121,9 +147,9 @@ class WofiPubs:
         menu_str = (f"{ico}\t <b>{opt}</b> {inf}\0" for ico, opt, inf in menu_)
 
         if library == "default":
-            conf = load_conf(self._default_lib)
+            conf = self.load_conf(self._default_lib)
         else:
-            conf = load_conf(library)
+            conf = self.load_conf(library)
 
         repo = Repository(conf)
 
@@ -146,7 +172,7 @@ class WofiPubs:
             if option == "Change library":
                 self.menu_change_lib(library)
             elif option == "Add publication":
-                pass
+                self._add_pub(library)
             elif option == "Search tags":
                 self.menu_tags(repo,library)
             elif option == "Sync. repo(s)":
@@ -357,6 +383,20 @@ class WofiPubs:
 
         return entry
 
+    def _add_pub(self, library):
+        """Add publication to library.
+
+        Parameters
+        ----------
+        library : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        pass
+
     def _open_doc(self, repo, citekey):
         """Open pdf file.
 
@@ -391,58 +431,14 @@ class WofiPubs:
         -------
         TODO
 
-        Note
-        ----
-        Most of the code was taken directly from pubs.
-
         """
-        paper = repo.pull_paper(citekey)
-        coder = EnDecoder()
-        encode = coder.encode_bibdata
-        decode = coder.decode_bibdata
-        suffix = '.bib'
-        raw_content = encode(paper.bibentry)
+        conf = repo.conf
+        args = PubsArgs()
+        args.citekey = citekey
+        edit_cmd(conf, args)
+        events.PostCommandEvent().send()
 
-        ui = InputUI(repo.conf)
-        ui.editor = self._editor
-
-        while True:
-            # Get new content from user
-            raw_content = ui.editor_input(initial=raw_content, suffix=suffix)
-            # Parse new content
-            try:
-                content = decode(raw_content)
-
-                new_paper = Paper.from_bibentry(content, metadata=paper.metadata)
-                if repo.rename_paper(new_paper, old_citekey=paper.citekey):
-                    ui.info(('Paper `{}` was successfully edited and renamed '
-                             'as `{}`.'.format(citekey, new_paper.citekey)))
-                else:
-                    ui.info(('Paper `{}` was successfully edited.'.format(citekey)))
-                break
-
-            except coder.BibDecodingError:
-                if not ui.input_yn(question="Error parsing bibdata. Edit again?"):
-                    ui.error("Aborting, paper not updated.")
-                    ui.exit()
-
-            except repo.CiteKeyCollision:
-                options = ['overwrite', 'edit again', 'abort']
-                choice = options[ui.input_choice(
-                    options, ['o', 'e', 'a'],
-                    question='A paper already exists with this citekey.')]
-
-                if choice == 'abort':
-                    break
-                elif choice == 'overwrite':
-                    paper = repo.push_paper(paper, overwrite=True)
-                    ui.info(('Paper `{}` was overwritten.'.format(citekey)))
-                    break
-                # else edit again
-            # Also handle malformed bibtex and metadata
-
-        ModifyEvent(citekey, "bibtex").send()
-        repo.close()
+        return 1
 
     def _export_bib(self, repo, citekey):
         """Export citation in bib format.
@@ -467,6 +463,13 @@ class WofiPubs:
 
         cmd = ["wl-copy", f"{bibdata_raw}"]
         subprocess.Popen(cmd)
+
+
+class PubsArgs:
+    """Dummy class to store arguments needed for the pubs commands."""
+    def __init__(self):
+        self.meta = None
+        self.citekey = None
 
 
 if __name__ == "__main__":
