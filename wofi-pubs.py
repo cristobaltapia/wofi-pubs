@@ -16,6 +16,7 @@ from pubs.paper import Paper
 from pubs.repo import Repository
 from pubs.uis import InputUI, PrintUI
 from pubs.commands.edit_cmd import command as edit_cmd
+from pubs.commands.add_cmd import command as add_cmd
 from pubs.uis import init_ui
 from pubs.uis import _ui
 from pubs import uis
@@ -172,9 +173,9 @@ class WofiPubs:
             if option == "Change library":
                 self.menu_change_lib(library)
             elif option == "Add publication":
-                self._add_pub(library)
+                self.menu_add(repo, library)
             elif option == "Search tags":
-                self.menu_tags(repo,library)
+                self.menu_tags(repo, library)
             elif option == "Sync. repo(s)":
                 pass
             elif option == "Show all":
@@ -278,6 +279,51 @@ class WofiPubs:
         sel_tag = tags[selected[0]]
 
         self.menu_main(library, sel_tag)
+
+    def menu_add(self, repo, library):
+        """Menu to add a new reference.
+
+        Parameters
+        ----------
+        repo : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        wofi = self._wofi_misc
+
+        menu_ = [
+            ("", "DOI"),
+            ("", "arXiv"),
+            ("", "ISBN"),
+            ("", "Bibfile"),
+            ("", "Manual Bibfile"),
+            ("", "Back"),
+        ]
+
+        menu_str = "".join(f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
+
+        wofi = self._wofi_ref
+        wofi.lines = 6
+
+        selected = wofi.select("...", menu_str, keep_newlines=True)
+
+        option = menu_[selected[0]][1]
+
+        if option == "DOI":
+            self._add_doi(repo)
+        elif option == "arXiv":
+            self._add_arxiv()
+        elif option == "ISBN":
+            self._add_isbn()
+        elif option == "Bibfile":
+            self._add_bibfile()
+        elif option == "Manual Bibfile":
+            self._add_bibfile_manual()
+        elif option == "Back":
+            self.menu_main(library)
 
     def _gen_menu_entries(self, repo, tag):
         """Generate menu entries for the library items.
@@ -383,19 +429,19 @@ class WofiPubs:
 
         return entry
 
-    def _add_pub(self, library):
+    def _add_doi(self, repo):
         """Add publication to library.
 
         Parameters
         ----------
-        library : TODO
+        repo : `obj`:Repository
 
-        Returns
-        -------
-        TODO
 
         """
-        pass
+        conf = repo.conf
+        args = PubsArgs()
+        add_cmd(conf, args)
+        events.PostCommandEvent().send()
 
     def _open_doc(self, repo, citekey):
         """Open pdf file.
