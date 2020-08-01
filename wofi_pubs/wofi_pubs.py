@@ -8,15 +8,13 @@ import json
 from itertools import chain
 from os.path import expandvars
 
-from pubs import content, endecoder, events, plugins, uis
+from pubs import content, events, plugins, uis
 from pubs.commands.add_cmd import command as add_cmd
 from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
 from pubs.endecoder import EnDecoder
-from pubs.events import ModifyEvent
-from pubs.paper import Paper
 from pubs.repo import Repository
-from pubs.uis import InputUI, PrintUI, _ui, init_ui
+from pubs.uis import init_ui
 from wofi import Wofi
 
 from dialogs import choose_file, get_user_input
