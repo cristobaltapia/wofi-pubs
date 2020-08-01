@@ -1,16 +1,9 @@
-#!/usr/bin/env python
-
-import argparse
-import configparser
 import re
 import subprocess
 import sys
 import unicodedata
 from pathlib import Path, PurePath
 from os.path import expanduser
-
-from pubs.config import load_conf
-from pubs.repo import Repository
 
 from dptrp1.dptrp1 import DigitalPaper
 
@@ -26,18 +19,42 @@ OUT_DEF = {
         "out_folder": "Articles",
         "out_name": [["year", "title", "subtitle"], ["year", "title"]],
     },
-    "report": {"out_folder": "Reports", "out_name": [["year", "title"]]},
-    "techreport": {"out_folder": "Reports", "out_name": [["year", "title"]]},
-    "inproceedings": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
-    "book": {"out_folder": "Books", "out_name": [["year", "title"]]},
+    "report": {
+        "out_folder": "Reports",
+        "out_name": [["year", "title"]]
+    },
+    "techreport": {
+        "out_folder": "Reports",
+        "out_name": [["year", "title"]]
+    },
+    "inproceedings": {
+        "out_folder": "Proceedings",
+        "out_name": [["year", "title"]]
+    },
+    "book": {
+        "out_folder": "Books",
+        "out_name": [["year", "title"]]
+    },
     "inbook": {
         "out_folder": "Articles",
         "out_name": [["year", "title", "subtitle"], ["year", "title"]],
     },
-    "conference": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
-    "standard": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
-    "misc": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
-    "phdthesis": {"out_folder": "Thesis", "out_name": [["year", "author", "title"]]},
+    "conference": {
+        "out_folder": "Proceedings",
+        "out_name": [["year", "title"]]
+    },
+    "standard": {
+        "out_folder": "Standards",
+        "out_name": [["year", "key", "title"]]
+    },
+    "misc": {
+        "out_folder": "Standards",
+        "out_name": [["year", "key", "title"]]
+    },
+    "phdthesis": {
+        "out_folder": "Thesis",
+        "out_name": [["year", "author", "title"]]
+    },
     "mastersthesis": {
         "out_folder": "Thesis",
         "out_name": [["year", "author", "title"]],
@@ -46,7 +63,6 @@ OUT_DEF = {
 
 
 class Document(object):
-
     """A class describing a document in the pubs library.
 
     It is used to upload the file to the DPT-RP1, as well as for downloading
@@ -58,7 +74,6 @@ class Document(object):
     repo : TODO
 
     """
-
     def __init__(self, key, repo, lib_name):
         self._key = key
         self._repo = repo
@@ -79,7 +94,13 @@ class Document(object):
         """
         repo = self._repo
         key = self._key
-        local_path = expanduser(repo.pull_docpath(key))
+
+        docpath = repo.pull_docpath(key)
+        if docpath is not None:
+            local_path = expanduser(repo.pull_docpath(key))
+        else:
+            print("No document!")
+            return 1
 
         target_folder = self._get_target_folder()
         name_file = self._gen_file_name()
@@ -174,7 +195,6 @@ class Document(object):
 
         # Define out folder
         for struct in name_format:
-            print(entry)
             try:
                 out_name = "".join(slugify(entry[ix]) + "_" for ix in struct)
                 break
@@ -206,33 +226,23 @@ def slugify(value):
     Normalizes string, converts to lowercase, removes non-alpha characters,
     and converts spaces to hyphens.
     """
-    value = (
-        unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-    )
+    value = (unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii"))
     value = re.sub(r"[^\w\s-]", "", value).strip().lower()
     return re.sub(r"[-\s]+", "-", value)
 
 
-def to_dpt(args):
-
+def to_dpt(repo, citekey, addr):
     # Get the DPT IP address
-    addr = args.addr
-
     try:
         dpt_obj = connect_to_dpt(addr)
     except OSError:
-        print(
-            "Unable to reach device, verify it is connected to the same network segment."
-        )
+        print("Unable to reach device, verify it is connected to the same network segment.")
         sys.exit(1)
 
-    citekey = args.citekey
-    library = args.library
-    m = re.search("(?<=/)([a-zA-Z0-9_-]+)\.[a-z]+$", library)
-    lib_name = m.group(1)
-
-    conf = load_conf(library)
-    repo = Repository(conf)
+    # FIXME
+    lib_path = repo.conf["main"]["pubsdir"]
+    m = re.search("(?<=/)[^/]+$", lib_path)
+    lib_name = m.group(0)
 
     # Create document
     doc = Document(key=citekey, repo=repo, lib_name=lib_name)
@@ -241,25 +251,19 @@ def to_dpt(args):
 
 
 def sync_annotated_docs(args):
-
     # Get the DPT IP address
     addr = args.addr
 
     try:
         dpt_obj = connect_to_dpt(addr)
     except OSError:
-        print(
-            "Unable to reach device, verify it is connected to the same network segment."
-        )
+        print("Unable to reach device, verify it is connected to the same network segment.")
         sys.exit(1)
-
-    library = arguments["library"]
 
 
 def get_dptrp1_addr():
-    sp = subprocess.run(
-        ["avahi-resolve", "-4", "-n", "digitalpaper.local"], stdout=subprocess.PIPE
-    )
+    sp = subprocess.run(["avahi-resolve", "-4", "-n", "digitalpaper.local"],
+                        stdout=subprocess.PIPE)
     stdout = sp.stdout.decode("UTF-8")
     m = re.search("\\t[0-9\.]+\\n", stdout)
     try:
@@ -268,42 +272,3 @@ def get_dptrp1_addr():
         addr = None
 
     return addr
-
-
-if __name__ == "__main__":
-
-    pars = argparse.ArgumentParser(
-        description="Send and receive pubs documents to and from a DPT-RP1"
-    )
-
-    # General options for the script
-    pars.add_argument(
-        "--library", help="Pubs configuration file", action="store", required=True
-    )
-    pars.add_argument(
-        "--addr",
-        help="IP Address of the DPT-RP1",
-        action="store",
-        default=get_dptrp1_addr(),
-    )
-
-    subparser = pars.add_subparsers(help="Commands:")
-
-    # Parser for the 'send' option
-    cmd_send = subparser.add_parser(
-        "send", help="Send publication associated to citekey to DPT-RP1"
-    )
-    cmd_send.add_argument(
-        "citekey", type=str, nargs="?", help="Citekey in the pubs library"
-    )
-    cmd_send.set_defaults(func=to_dpt)
-
-    # Parser for the 'sync' option
-    cmd_sync = subparser.add_parser(
-        "sync", help="Sync annotations associated to citekey from DPT-RP1"
-    )
-    cmd_sync.set_defaults(func=sync_annotated_docs)
-
-    # Call the selected function
-    arguments = pars.parse_args()
-    arguments.func(arguments)

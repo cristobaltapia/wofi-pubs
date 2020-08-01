@@ -4,6 +4,7 @@ import configparser
 import os
 import subprocess
 import sys
+import json
 from itertools import chain
 from os.path import expandvars
 
@@ -19,6 +20,7 @@ from pubs.uis import InputUI, PrintUI, _ui, init_ui
 from wofi import Wofi
 
 from dialogs import choose_file, get_user_input
+from print_to_dpt import to_dpt
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -90,6 +92,7 @@ class WofiPubs:
         self._cache_libs = expandvars(conf_.get("cache_libs"))
         self._terminal = conf_.get("TERMINAL_EDIT")
         self._editor = expandvars(conf_.get("editor"))
+        self._dpt_devices = expandvars("${HOME}/.dpapp/devices.json")
 
     def load_conf(self, library):
         """Load configuration file in pubs.
@@ -223,7 +226,7 @@ class WofiPubs:
         elif option == "Export":
             self._export_bib(repo, citekey)
         elif option == "Send to DPT-RP1":
-            pass
+            self._send_to_dptrp1(repo, citekey)
         elif option == "Send in E-Mail":
             pass
 
@@ -587,6 +590,41 @@ class WofiPubs:
 
         cmd = ["wl-copy", f"{bibdata_raw}"]
         subprocess.Popen(cmd)
+
+    def _send_to_dptrp1(self, repo, citekey):
+        """Send document to Sony DPT-RP1
+
+        Parameters
+        ----------
+        config : TODO
+        citekey : TODO
+
+        """
+        # Read ip addresses from config file
+        devices_addr = self._dpt_devices
+        with open(devices_addr, "r") as dev:
+            devices = json.load(dev)
+
+        menu_ = [(k, val) for k, val in devices.items()]
+
+        menu_str = "".join(f"{ico}\t\t <b>{opt}</b>\0" for ico, opt in menu_)
+        menu_str += "\0"
+
+        wofi_disp = menu_str
+
+        wofi = self._wofi_ref
+        wofi.lines = 6
+
+        selected = wofi.select("...", wofi_disp, keep_newlines=True)
+
+        addr = menu_[selected[0]][1]
+
+        to_dpt(repo, citekey, addr)
+
+        msg = ['notify-send', f'wofi-pubs:\n{citekey} sent to DPT-RP1']
+        subprocess.run(msg)
+
+        self.menu_reference(repo, citekey, tag=None)
 
 
 class PubsArgs:

@@ -4,6 +4,7 @@ version = "0.2.0"
 description = "A wofi interface for the reference manager pubs"
 authors = ["Cristóbal Tapia Camú <crtapia@gmail.com>"]
 license = "MIT"
+readme = "Readme.md"
 homepage = "https://github.com/cristobaltapia/wofi-pubs"
 repository = "https://github.com/cristobaltapia/wofi-pubs"
 keywords = ["wofi", "pubs"]
@@ -13,11 +14,12 @@ python = "^3.6"
 pubs = "^0.8.3"
 python-wofi = "^0.1.0"
 PyGObject = "^3.36.1"
-pydocstyle = "^5.0.2"
-yapf = "^0.30.0"
+dpt-rp1-py = "^0.1.11"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.2.2"
+yapf = "^0.30.0"
+pydocstyle = "^5.0.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
