@@ -4,25 +4,21 @@ import configparser
 import os
 import subprocess
 import sys
-from os.path import expandvars
 from itertools import chain
+from os.path import expandvars
 
-from pubs import content, endecoder
+from pubs import content, endecoder, events, plugins, uis
+from pubs.commands.add_cmd import command as add_cmd
+from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
-from pubs import plugins
 from pubs.endecoder import EnDecoder
 from pubs.events import ModifyEvent
 from pubs.paper import Paper
 from pubs.repo import Repository
-from pubs.uis import InputUI, PrintUI
-from pubs.commands.edit_cmd import command as edit_cmd
-from pubs.commands.add_cmd import command as add_cmd
-from pubs.uis import init_ui
-from pubs.uis import _ui
-from pubs import uis
-from pubs import events
+from pubs.uis import InputUI, PrintUI, _ui, init_ui
+from wofi import Wofi
 
-from rofi import Wofi
+from dialogs import choose_file, get_user_input
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -57,9 +53,9 @@ class WofiPubs:
             "--insensitive",
         ]
 
-        self._wofi = Wofi(width=1200, rofi_args=wofi_options)
-        self._wofi_ref = Wofi(width=800, rofi_args=wofi_options_ref)
-        self._wofi_misc = Wofi(width=600, rofi_args=wofi_options_misc)
+        self._wofi = Wofi(width=1200, wofi_args=wofi_options)
+        self._wofi_ref = Wofi(width=800, wofi_args=wofi_options_ref)
+        self._wofi_misc = Wofi(width=600, wofi_args=wofi_options_misc)
 
     def _parse_config(self):
         """Parse the configuration file."""
@@ -315,13 +311,13 @@ class WofiPubs:
         if option == "DOI":
             self._add_doi(repo)
         elif option == "arXiv":
-            self._add_arxiv()
+            self._add_arxiv(repo)
         elif option == "ISBN":
-            self._add_isbn()
+            self._add_isbn(repo)
         elif option == "Bibfile":
-            self._add_bibfile()
+            self._add_bibfile(repo)
         elif option == "Manual Bibfile":
-            self._add_bibfile_manual()
+            self._add_bibfile_manual(repo)
         elif option == "Back":
             self.menu_main(library)
 
@@ -430,7 +426,7 @@ class WofiPubs:
         return entry
 
     def _add_doi(self, repo):
-        """Add publication to library.
+        """Add publication to library from DOI.
 
         Parameters
         ----------
@@ -438,8 +434,86 @@ class WofiPubs:
 
 
         """
-        conf = repo.conf
+        doi = get_user_input("DOI:", description="Import reference by DOI")
+
         args = PubsArgs()
+        args.doi = doi
+
+        conf = repo.conf
+        add_cmd(conf, args)
+        events.PostCommandEvent().send()
+
+    def _add_arxiv(self, repo):
+        """Add publication to library from ArXiv.
+
+        Parameters
+        ----------
+        repo : `obj`:Repository
+
+
+        """
+        arxiv = get_user_input("ArXiv:", description="Import reference by Arxiv")
+
+        args = PubsArgs()
+        args.arxiv = arxiv
+
+        conf = repo.conf
+        add_cmd(conf, args)
+        events.PostCommandEvent().send()
+
+    def _add_isbn(self, repo):
+        """Add publication to library from ISBN.
+
+        Parameters
+        ----------
+        repo : `obj`:Repository
+
+
+        """
+        isbn = get_user_input("ISBN:", description="Import reference by ISBN")
+
+        args = PubsArgs()
+        args.isbn = isbn
+
+        conf = repo.conf
+        add_cmd(conf, args)
+        events.PostCommandEvent().send()
+
+    def _add_bibfile(self, repo):
+        """Add publication to library from bibfile.
+
+        Parameters
+        ----------
+        repo : `obj`:Repository
+
+
+        """
+        bibfile = choose_file(text="Bibfile:", description="Import reference from Bibfile",
+                              filter="bib")
+
+        args = PubsArgs()
+        args.bibfile = bibfile
+
+        conf = repo.conf
+        add_cmd(conf, args)
+        events.PostCommandEvent().send()
+
+    def _add_bibfile_manual(self, repo):
+        """Add publication to library by manual entry of bibfile.
+
+        Parameters
+        ----------
+        repo : `obj`:Repository
+
+
+        """
+        tmp_bib_file = os.path.expandvars("${HOME}/.local/tmp/test.bib")
+        uis._ui.edit_file(tmp_bib_file, False)
+
+        args = PubsArgs()
+        args.bibfile = tmp_bib_file
+
+        conf = repo.conf
         add_cmd(conf, args)
         events.PostCommandEvent().send()
 
@@ -516,9 +590,17 @@ class PubsArgs:
     def __init__(self):
         self.meta = None
         self.citekey = None
+        self.doi = None
+        self.arxiv = None
+        self.isbn = None
+        self.docfile = None
+        self.citekey = None
+        self.bibfile = None
+        self.tags = None
+        self.doc_copy = "copy"
 
 
-if __name__ == "__main__":
+def main():
     pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
     pars.add_argument(
         "config",
@@ -533,3 +615,7 @@ if __name__ == "__main__":
 
     wofi_pubs = WofiPubs(config)
     wofi_pubs.menu_main()
+
+
+if __name__ == "__main__":
+    main()
