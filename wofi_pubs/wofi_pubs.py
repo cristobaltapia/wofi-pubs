@@ -434,10 +434,11 @@ class WofiPubs:
 
 
         """
-        doi = get_user_input("DOI:", description="Import reference by DOI")
+        doi, doc = get_user_input("DOI:", description="Import reference by DOI")
 
         args = PubsArgs()
         args.doi = doi
+        args.docfile = doc
 
         conf = repo.conf
         add_cmd(conf, args)
@@ -452,10 +453,11 @@ class WofiPubs:
 
 
         """
-        arxiv = get_user_input("ArXiv:", description="Import reference by Arxiv")
+        arxiv, doc = get_user_input("ArXiv:", description="Import reference by Arxiv")
 
         args = PubsArgs()
         args.arxiv = arxiv
+        args.docfile = doc
 
         conf = repo.conf
         add_cmd(conf, args)
@@ -470,10 +472,11 @@ class WofiPubs:
 
 
         """
-        isbn = get_user_input("ISBN:", description="Import reference by ISBN")
+        isbn, doc = get_user_input("ISBN:", description="Import reference by ISBN")
 
         args = PubsArgs()
         args.isbn = isbn
+        args.docfile = doc
 
         conf = repo.conf
         add_cmd(conf, args)
@@ -488,11 +491,12 @@ class WofiPubs:
 
 
         """
-        bibfile = choose_file(text="Bibfile:", description="Import reference from Bibfile",
+        bibfile, doc = choose_file(text="Bibfile:", description="Import reference from Bibfile",
                               filter="bib")
 
         args = PubsArgs()
         args.bibfile = bibfile
+        args.docfile = doc
 
         conf = repo.conf
         add_cmd(conf, args)
