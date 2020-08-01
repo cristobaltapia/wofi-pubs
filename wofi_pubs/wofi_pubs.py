@@ -17,8 +17,8 @@ from pubs.repo import Repository
 from pubs.uis import init_ui
 from wofi import Wofi
 
-from dialogs import choose_file, get_user_input
-from print_to_dpt import to_dpt
+from .dialogs import choose_file, get_user_input
+from .print_to_dpt import to_dpt
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
