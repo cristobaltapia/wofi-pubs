@@ -21,6 +21,7 @@ from wofi import Wofi
 from .dialogs import choose_file, get_user_input
 from .print_to_dpt import to_dpt
 from .update_metadata import update_pdf_metadata
+from .email import send_doc_per_mail
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -200,6 +201,7 @@ class WofiPubs:
             ("", "From same author(s)"),
             ("", "Edit"),
             ("", "Back"),
+            ("", "Send per E-Mail"),
             ("", "More actions"),
         ]
 
@@ -227,8 +229,8 @@ class WofiPubs:
             self._export_bib(repo, citekey)
         elif option == "Send to DPT-RP1":
             self._send_to_dptrp1(repo, citekey)
-        elif option == "Send in E-Mail":
-            pass
+        elif option == "Send per E-Mail":
+            self._send_per_mail(repo, citekey)
 
     def menu_change_lib(self, library):
         """Present menu to change library.
@@ -641,6 +643,17 @@ class WofiPubs:
         subprocess.run(msg)
 
         self.menu_reference(repo, citekey, tag=None)
+
+    def _send_per_mail(self, repo, citekey):
+        """Send reference per E-mail.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        """
+        send_doc_per_mail(repo, citekey)
 
 
 class PubsArgs:
