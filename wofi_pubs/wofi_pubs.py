@@ -442,18 +442,13 @@ class WofiPubs:
         args = PubsArgs()
         args.doi = doi
         args.docfile = doc
-
-        bibentry = bibentry_from_api(args, uis._ui)
-        base_key = extract_citekey(bibentry)
-        citekey = repo.unique_citekey(base_key, uis._ui)
-        args.citekey = citekey
+        args.citekey = gen_citekey(repo, args)
 
         conf = repo.conf
         add_cmd(conf, args)
 
         if doc is not None:
-            doc = update_pdf_metadata(repo, citekey)
-            print(citekey)
+            doc = update_pdf_metadata(repo, args.citekey)
 
         events.PostCommandEvent().send()
 
@@ -471,9 +466,14 @@ class WofiPubs:
         args = PubsArgs()
         args.arxiv = arxiv
         args.docfile = doc
+        args.citekey = gen_citekey(repo, args)
 
         conf = repo.conf
         add_cmd(conf, args)
+
+        if doc is not None:
+            doc = update_pdf_metadata(repo, args.citekey)
+
         events.PostCommandEvent().send()
 
     def _add_isbn(self, repo):
@@ -490,9 +490,14 @@ class WofiPubs:
         args = PubsArgs()
         args.isbn = isbn
         args.docfile = doc
+        args.citekey = gen_citekey(repo, args)
 
         conf = repo.conf
         add_cmd(conf, args)
+
+        if doc is not None:
+            doc = update_pdf_metadata(repo, args.citekey)
+
         events.PostCommandEvent().send()
 
     def _add_bibfile(self, repo):
@@ -504,8 +509,9 @@ class WofiPubs:
 
 
         """
-        bibfile, doc = choose_file(text="Bibfile:", description="Import reference from Bibfile",
-                              filter="bib")
+        bibfile, doc = choose_file(text="Bibfile:",
+                                   description="Import reference from Bibfile",
+                                   filter="bib")
 
         args = PubsArgs()
         args.bibfile = bibfile
@@ -650,6 +656,26 @@ class PubsArgs:
         self.bibfile = None
         self.tags = None
         self.doc_copy = "copy"
+
+
+def gen_citekey(repo, args):
+    """Generate the citekey when importing new references.
+
+    Parameters
+    ----------
+    repo : Repository
+        Contains the references.
+    args : TODO
+
+    Returns
+    -------
+    TODO
+
+    """
+    bibentry = bibentry_from_api(args, uis._ui)
+    base_key = extract_citekey(bibentry)
+    citekey = repo.unique_citekey(base_key, uis._ui)
+    return citekey
 
 
 def main():
