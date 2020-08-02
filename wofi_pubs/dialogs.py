@@ -51,8 +51,6 @@ class AddReferenceDialog(Gtk.Window):
     def on_button_clicked(self, widget):
         self.close()
         self.input = self.entry.get_text()
-        if self.file_path != "":
-            self.doc_path = self.file_path.get_text()
 
         return 1
 
@@ -72,8 +70,7 @@ class AddReferenceDialog(Gtk.Window):
 
         if response == Gtk.ResponseType.OK:
             self.file_path.set_text(dialog.get_filename())
-        elif response == Gtk.ResponseType.CANCEL:
-            self.file_path.set_text("")
+            self.doc_path = dialog.get_filename()
 
         dialog.destroy()
 
@@ -223,5 +220,4 @@ def choose_file(text, description, filter):
     Gtk.main()
 
     return dialog.input
-
 

@@ -9,16 +9,18 @@ from itertools import chain
 from os.path import expandvars
 
 from pubs import content, events, plugins, uis
-from pubs.commands.add_cmd import command as add_cmd
+from pubs.commands.add_cmd import command as add_cmd, bibentry_from_api
 from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
 from pubs.endecoder import EnDecoder
+from pubs.bibstruct import extract_citekey
 from pubs.repo import Repository
 from pubs.uis import init_ui
 from wofi import Wofi
 
 from .dialogs import choose_file, get_user_input
 from .print_to_dpt import to_dpt
+from .update_metadata import update_pdf_metadata
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -441,8 +443,18 @@ class WofiPubs:
         args.doi = doi
         args.docfile = doc
 
+        bibentry = bibentry_from_api(args, uis._ui)
+        base_key = extract_citekey(bibentry)
+        citekey = repo.unique_citekey(base_key, uis._ui)
+        args.citekey = citekey
+
         conf = repo.conf
         add_cmd(conf, args)
+
+        if doc is not None:
+            doc = update_pdf_metadata(repo, citekey)
+            print(citekey)
+
         events.PostCommandEvent().send()
 
     def _add_arxiv(self, repo):
