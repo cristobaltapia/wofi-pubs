@@ -60,6 +60,10 @@ class WofiPubs:
         self._wofi_ref = Wofi(width=800, wofi_args=wofi_options_ref)
         self._wofi_misc = Wofi(width=600, wofi_args=wofi_options_misc)
 
+        self._wofi.wofi_exe = self._wofi_exe
+        self._wofi_ref.wofi_exe = self._wofi_exe
+        self._wofi_misc.wofi_exe = self._wofi_exe
+
     def _parse_config(self):
         """Parse the configuration file."""
         config_file = self._config
@@ -86,7 +90,7 @@ class WofiPubs:
 
         # Read the configuration file
         self._pdfviewer = conf_.get("PDFVIEWER")
-        self._wofi = conf_.get("WOFI")
+        self._wofi_exe = expandvars(conf_.get("WOFI"))
         self._config_dir = expandvars(conf_.get("configs_dir"))
         self._default_lib = expandvars(conf_.get("default_lib"))
         self._cache_auth = expandvars(conf_.get("cache_auth"))
