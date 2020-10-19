@@ -12,7 +12,7 @@ keywords = ["wofi", "pubs"]
 [tool.poetry.dependencies]
 python = "^3.6"
 pubs = "^0.8.3"
-python-wofi = "^0.1.0"
+python-wofi = "^0.2.1"
 PyGObject = "^3.36.1"
 dpt-rp1-py = "^0.1.11"
 
