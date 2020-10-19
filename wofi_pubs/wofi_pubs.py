@@ -366,7 +366,7 @@ class WofiPubs:
             else:
                 pdf = ""
 
-            entry = (f"<tt>{pdf} </tt> ({year}) <b>{au}</b> \n" +
+            entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
                      f"<tt>   </tt><i>{title}</i>\0")
 
             yield entry
