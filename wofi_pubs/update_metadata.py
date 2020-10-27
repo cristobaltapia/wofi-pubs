@@ -28,8 +28,8 @@ def update_pdf_metadata(repo, citekey):
     local_path = expanduser(repo.pull_docpath(citekey))
 
     exiftool_cmd = [
-        "exiftool", f"-Title='{title}'", f"-Author='{author}", "-Creator=''",
-        "-overwrite_original", local_path
+        'exiftool', f'-Title={title}', f'-Author={author}', '-Creator=""',
+        '-overwrite_original', local_path
     ]
     p2 = subprocess.run(exiftool_cmd, check=False)
 
