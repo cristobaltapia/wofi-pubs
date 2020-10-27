@@ -539,11 +539,17 @@ class WofiPubs:
         tmp_bib_file = os.path.expandvars("${HOME}/.local/tmp/test.bib")
         uis._ui.edit_file(tmp_bib_file, False)
 
+        doc = choose_file("PDF:", "Choose a PDF file", filter="pdf")
+
         args = PubsArgs()
         args.bibfile = tmp_bib_file
 
         conf = repo.conf
         add_cmd(conf, args)
+
+        if doc is not None:
+            doc = update_pdf_metadata(repo, args.citekey)
+
         events.PostCommandEvent().send()
 
     def _open_doc(self, repo, citekey):
