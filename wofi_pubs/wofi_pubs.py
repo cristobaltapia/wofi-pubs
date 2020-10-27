@@ -515,9 +515,10 @@ class WofiPubs:
 
 
         """
-        bibfile, doc = choose_file(text="Bibfile:",
-                                   description="Import reference from Bibfile",
-                                   filter="bib")
+        bibfile, doc = choose_two_files(
+            text="Bibfile:",
+            description="Import reference from Bibfile",
+        )
 
         args = PubsArgs()
         args.bibfile = bibfile
@@ -525,6 +526,10 @@ class WofiPubs:
 
         conf = repo.conf
         add_cmd(conf, args)
+
+        if doc is not None:
+            doc = update_pdf_metadata(repo, args.citekey)
+
         events.PostCommandEvent().send()
 
     def _add_bibfile_manual(self, repo):
