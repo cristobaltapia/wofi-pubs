@@ -18,7 +18,7 @@ from pubs.repo import Repository
 from pubs.uis import init_ui
 from wofi import Wofi
 
-from .dialogs import choose_file, get_user_input
+from .dialogs import choose_file, get_user_input, choose_two_files
 from .print_to_dpt import to_dpt
 from .update_metadata import update_pdf_metadata
 from .email import send_doc_per_mail
