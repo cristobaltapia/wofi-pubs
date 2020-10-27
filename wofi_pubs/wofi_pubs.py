@@ -1,27 +1,29 @@
 #!/usr/bin/env python3
 import argparse
 import configparser
+import json
 import os
 import subprocess
 import sys
-import json
 from itertools import chain
 from os.path import expandvars
 
+import bibtexparser
 from pubs import content, events, plugins, uis
-from pubs.commands.add_cmd import command as add_cmd, bibentry_from_api
+from pubs.bibstruct import extract_citekey
+from pubs.commands.add_cmd import bibentry_from_api
+from pubs.commands.add_cmd import command as add_cmd
 from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
 from pubs.endecoder import EnDecoder
-from pubs.bibstruct import extract_citekey
 from pubs.repo import Repository
 from pubs.uis import init_ui
 from wofi import Wofi
 
-from .dialogs import choose_file, get_user_input, choose_two_files
+from .dialogs import choose_file, choose_two_files, get_user_input
+from .email import send_doc_per_mail
 from .print_to_dpt import to_dpt
 from .update_metadata import update_pdf_metadata
-from .email import send_doc_per_mail
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -523,6 +525,14 @@ class WofiPubs:
         args = PubsArgs()
         args.bibfile = bibfile
         args.docfile = doc
+        # Read bibfile
+        if doc is not None:
+            with open(bibfile) as bibtex_file:
+                bibtex_str = bibtex_file.read()
+                bib_database = bibtexparser.loads(bibtex_str)
+                base_key = bib_database.entries[0]["ID"]
+                citekey = repo.unique_citekey(base_key, uis._ui)
+                args.citekey = citekey
 
         conf = repo.conf
         add_cmd(conf, args)
@@ -548,6 +558,15 @@ class WofiPubs:
 
         args = PubsArgs()
         args.bibfile = tmp_bib_file
+        args.docfile = doc
+        # Read bibfile
+        if doc is not None:
+            with open(tmp_bib_file) as bibtex_file:
+                bibtex_str = bibtex_file.read()
+                bib_database = bibtexparser.loads(bibtex_str)
+                base_key = bib_database.entries[0]["ID"]
+                citekey = repo.unique_citekey(base_key, uis._ui)
+                args.citekey = citekey
 
         conf = repo.conf
         add_cmd(conf, args)
