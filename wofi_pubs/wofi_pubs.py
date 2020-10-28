@@ -208,6 +208,7 @@ class WofiPubs:
             ("", "Edit"),
             ("", "Back"),
             ("", "Send per E-Mail"),
+            ("", "Update PDF metadata"),
             ("", "More actions"),
         ]
 
@@ -237,6 +238,10 @@ class WofiPubs:
             self._send_to_dptrp1(repo, citekey)
         elif option == "Send per E-Mail":
             self._send_per_mail(repo, citekey)
+        elif option == "Update PDF metadata":
+            self._update_pdf_metadata(repo, citekey)
+        elif option == "More actions":
+            self._ref_menu_more(repo, citekey)
 
     def menu_change_lib(self, library):
         """Present menu to change library.
@@ -688,6 +693,25 @@ class WofiPubs:
 
         """
         send_doc_per_mail(repo, citekey)
+
+    def _update_pdf_metadata(self, repo, citekey):
+        """Update the PDF's metadata
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        paper = repo.pull_paper(citekey)
+
+        docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
+        doc = update_pdf_metadata(repo, citekey)
+        events.PostCommandEvent().send()
 
 
 class PubsArgs:
