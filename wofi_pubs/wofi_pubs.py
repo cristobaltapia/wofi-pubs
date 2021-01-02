@@ -206,6 +206,7 @@ class WofiPubs:
             ("", "Send to DPT-RP1"),
             ("", "From same author(s)"),
             ("", "Edit"),
+            ("", "Add tag"),
             ("", "Back"),
             ("", "Send per E-Mail"),
             ("", "Update PDF metadata"),
@@ -234,6 +235,8 @@ class WofiPubs:
             self._edit_bib(repo, citekey)
         elif option == "Export":
             self._export_bib(repo, citekey)
+        elif option == "Add tag":
+            self._add_tag(repo, citekey)
         elif option == "Send to DPT-RP1":
             self._send_to_dptrp1(repo, citekey)
         elif option == "Send per E-Mail":
@@ -580,6 +583,33 @@ class WofiPubs:
             doc = update_pdf_metadata(repo, args.citekey)
 
         events.PostCommandEvent().send()
+
+    def _add_tag(self, repo, citekey):
+        """Add tag to reference.
+
+        Parameters
+        ----------
+        repo : TODO
+        citekey : TODO
+
+        Returns
+        -------
+        TODO
+
+        """
+        # Get all tags
+        tags = repo.get_tags()
+        # Present in wofi
+        wofi = self._wofi_misc
+        wofi.lines = min([len(tags), 15])
+
+        new_tag = wofi.select_or_new("New tag...", tags)
+
+        paper = repo.pull_paper(citekey)
+        paper.add_tag(new_tag)
+        repo.push_paper(paper, overwrite=True, event=False)
+        events.PostCommandEvent().send()
+        self.menu_reference(repo, citekey, None)
 
     def _open_doc(self, repo, citekey):
         """Open pdf file.
