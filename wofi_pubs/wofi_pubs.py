@@ -160,11 +160,10 @@ class WofiPubs:
 
         repo = Repository(conf)
 
-        menu_entries = self._gen_menu_entries(repo, tag)
+        entries = self._gen_menu_entries(repo, tag)
+        menu_entries, keys = zip(*entries)
 
         wofi_disp = chain(menu_str, menu_entries)
-
-        keys = [p.citekey for p in repo.all_papers()]
 
         wofi = self._wofi
         wofi.width = 1200
@@ -383,7 +382,7 @@ class WofiPubs:
             entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
                      f"<tt>   </tt><i>{title}</i>\0")
 
-            yield entry
+            yield entry, key
 
     def _get_reference_info(self, repo, citekey):
         """Generate content of the reference menu.
