@@ -309,7 +309,7 @@ class WofiPubs:
         wofi = self._wofi_misc
 
         menu_ = [
-            ("", "DOI"),
+            ("", "DOI"),
             ("", "arXiv"),
             ("", "ISBN"),
             ("", "Bibfile"),
