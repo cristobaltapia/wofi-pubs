@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "wofi-pubs"
-version = "0.5.2"
+version = "0.5.3"
 description = "A wofi interface for the reference manager pubs"
 authors = ["Cristóbal Tapia Camú <crtapia@gmail.com>"]
 license = "MIT"
