@@ -223,10 +223,9 @@ def connect_to_dpt(addr, dev_id=DPT_ID, dev_key=DPT_KEY):
 
 def slugify(value):
     """
-    Normalizes string, converts to lowercase, removes non-alpha characters,
-    and converts spaces to hyphens.
+    Normalizes string, converts to lowercase and converts spaces to hyphens.
     """
-    value = (unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii"))
+    # value = (unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii"))
     value = re.sub(r"[^\w\s-]", "", value).strip().lower()
     return re.sub(r"[-\s]+", "-", value)
 
