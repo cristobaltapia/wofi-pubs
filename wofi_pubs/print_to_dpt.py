@@ -111,6 +111,8 @@ class Document(object):
         with open(local_path, "rb") as fh:
             dpt.upload(fh, str(remote_path))
 
+        return remote_path
+
     def get_annotations(self, dpt):
         """Get pdf file with the annotations.
 
@@ -205,9 +207,7 @@ class Document(object):
 
 
 def connect_to_dpt(addr, dev_id=DPT_ID, dev_key=DPT_KEY):
-    """
-    Loads the key and client ID to authenticate with the DPT-RP1
-    """
+    """Load the key and client ID to authenticate with the DPT-RP1."""
 
     with open(dev_id) as f:
         client_id = f.readline().strip()
@@ -246,7 +246,33 @@ def to_dpt(repo, citekey, addr):
     # Create document
     doc = Document(key=citekey, repo=repo, lib_name=lib_name)
 
-    doc.to_dptrp1(dpt_obj)
+    remote_path = doc.to_dptrp1(dpt_obj)
+
+    return remote_path
+
+def show_sent_file(notification, action_name, data):
+    """TODO: Docstring for show_sent_file.
+
+    Parameters
+    ----------
+    remote_path : TODO
+
+    Returns
+    -------
+    TODO
+
+    """
+    addr = data[0]
+    remote_path = data[1]
+
+    try:
+        dpt_obj = connect_to_dpt(addr)
+    except OSError:
+        print("Unable to reach device, verify it is connected to the same network segment.")
+        sys.exit(1)
+
+    info = dpt_obj.list_document_info(remote_path.__bytes__())
+    dpt_obj.display_document(info["entry_id"], 1)
 
 
 def sync_annotated_docs(args):
