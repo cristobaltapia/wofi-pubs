@@ -45,6 +45,7 @@ class WofiPubs:
         wofi_options = [
             "--allow-markup",
             "--insensitive",
+            "--matching=fuzzy",
             r"-Ddmenu-separator=\\0",
         ]
         wofi_options_ref = [
