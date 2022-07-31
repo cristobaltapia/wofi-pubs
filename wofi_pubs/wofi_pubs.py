@@ -592,7 +592,7 @@ class WofiPubs:
 
         self._conn.send({
             "cmd": "send-to-device",
-            "addre": addr,
+            "addr": addr,
             "library": library,
             "citekey": citekey
         })
