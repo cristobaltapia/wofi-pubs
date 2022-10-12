@@ -15,7 +15,6 @@ pubs = ">=0.8.3"
 python-wofi = "^0.3.0"
 PyGObject = "^3.36.1"
 dpt-rp1-py = "^0.1.11"
-gobject = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.2.2"
