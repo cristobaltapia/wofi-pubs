@@ -55,6 +55,36 @@ default_lib=$HOME/.config/pubs/main_library.conf
 terminal_edit=termite
 ```
 
+## Usage
+
+Wofi-pubs is divided into a server and a client application.
+This allows the presentation of the library much faster, as the server side has pre-cached all the information in the background.
+To start the server run:
+
+```sh
+wofi-pubs-server
+```
+
+A systemd unit is also provided and can be started as:
+
+```sh
+systemctl --user enable wofi-pubs-server.service
+systemctl --user start wofi-pubs-server.service
+```
+
+Once the server side is up and running the client can be started with
+
+```sh
+wofi-pubs
+```
+
+Map this command to whatever keyboard combination as you like.
+In Sway I use `Ctrl+Shift+p` as
+
+```
+bindsym $mod+Shift+p exec wofi-pubs
+```
+
 ### Configuration to send files to Sony DPT-RP1
 
 A file has to be created under `~/.dappp/devices` listing different possible addresses to find the DPT-RP1, with the syntax `name: address` as:

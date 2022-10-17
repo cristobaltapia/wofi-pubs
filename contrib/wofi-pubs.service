@@ -1,0 +1,11 @@
+[Unit]
+Description=Wofi interface for pubs reference manager (server side)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/wofi-pubs-server
+RestartSec=5
+Restart=always
+
+[Install]
+WantedBy=default.target
