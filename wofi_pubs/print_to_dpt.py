@@ -168,7 +168,7 @@ class Document(object):
 
         """
         key = self._key
-        d_type = self._bib[key]["type"]
+        d_type = self._bib[key]["ENTRYTYPE"]
 
         # Define name of the target folder
         if self._lib_name in [None, "main_library"]:
@@ -188,7 +188,7 @@ class Document(object):
 
         """
         key = self._key
-        d_type = self._bib[key]["type"]
+        d_type = self._bib[key]["ENTRYTYPE"]
 
         # Define name of the target file
         name_format = OUT_DEF[d_type]["out_name"]
