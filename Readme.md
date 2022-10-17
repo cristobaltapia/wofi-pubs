@@ -68,8 +68,8 @@ wofi-pubs-server
 A systemd unit is also provided and can be started as:
 
 ```sh
-systemctl --user enable wofi-pubs-server.service
-systemctl --user start wofi-pubs-server.service
+systemctl --user enable wofi-pubs.service
+systemctl --user start wofi-pubs.service
 ```
 
 Once the server side is up and running the client can be started with
