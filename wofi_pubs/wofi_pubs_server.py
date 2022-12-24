@@ -47,6 +47,7 @@ class PubsServer:
         self.keys = dict()
         self.repos = dict()
         Notify.init("Wofi-pubs")
+        self.notification = None
 
         self._load_publications()
 
@@ -147,11 +148,11 @@ class PubsServer:
         while True:
             listener = Listener(('localhost', 6000))
             running = True
+            conn = listener.accept()
+            print(f'connection accepted from {listener.last_accepted}')
             try:
                 while running:
-                    conn = listener.accept()
-                    print(f'connection accepted from {listener.last_accepted}')
-                    while True:
+                    while conn.poll():
                         msg = conn.recv()
                         print(msg)
                         if msg["cmd"] == 'get-publication-list':
@@ -205,6 +206,11 @@ class PubsServer:
                         else:
                             running = False
                             break
+
+                    print("now updated!")
+                    context = self.loop.get_context()
+                    context.iteration()
+
             except ConnectionResetError:
                 listener.close()
                 continue
@@ -486,12 +492,10 @@ class PubsServer:
 
         Parameters
         ----------
-        repo : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the config file of the library.
+        citekey : str
+            Citekey of the paper to be edited.
 
         """
         repo = self.repos[library]
