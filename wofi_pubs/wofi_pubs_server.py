@@ -95,7 +95,8 @@ class PubsServer:
 
         Returns
         -------
-        TODO
+        conf :
+            Configuration of the library.
 
         """
         conf = load_conf(library)
@@ -115,10 +116,6 @@ class PubsServer:
             The default library.
         tag : str
             Present only documents with the given tag.
-
-        Returns
-        -------
-        TODO
 
         """
         if tag:
@@ -144,7 +141,12 @@ class PubsServer:
             self.repos[config_path] = repo
 
     def start_listening(self):
-        """Start the server."""
+        """Start the server.
+
+        Thus function start the listening loop of the server. It listens for
+        requests from the client and executes the needed functions.
+
+        """
         while True:
             listener = Listener(('localhost', 6000))
             running = True
@@ -224,11 +226,10 @@ class PubsServer:
 
         Parameters
         ----------
-        repo : TODO
-
-        Returns
-        -------
-        TODO
+        repo : :obj:`Repository`
+            Repository containing all the papers.
+        library : str
+            Path to the library configuration file.
 
         """
         tags = list(repo.get_tags())
@@ -243,15 +244,14 @@ class PubsServer:
         self.menu_main(library, sel_tag)
 
     def menu_add(self, repo, library):
-        """Menu to add a new reference.
+        """Show menu to add a new reference to the library.
 
         Parameters
         ----------
-        repo : TODO
-
-        Returns
-        -------
-        TODO
+        repo : :obj:`Repository`
+            Repository containing all the papers.
+        library : str
+            Path to the library configuration file.
 
         """
         wofi = self._wofi_misc
@@ -361,12 +361,15 @@ class PubsServer:
 
         Parameters
         ----------
-        repo : TODO
-        citekey : TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey of the paper.
 
         Returns
         -------
-        TODO
+        str :
+            The detailed information of a given paper.
 
         """
         paper = self.repos[library].pull_paper(citekey)
@@ -450,12 +453,12 @@ class PubsServer:
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
+        tag : str
+            Tag to be added to the reference.
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey of the paper.
 
         """
         repo = self.repos[library]
@@ -465,16 +468,14 @@ class PubsServer:
         events.PostCommandEvent().send()
 
     def _open_doc(self, library, citekey):
-        """Open pdf file.
+        """Open pdf file with default pdf reader.
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey of the paper.
 
         """
         repo = self.repos[library]
@@ -508,16 +509,16 @@ class PubsServer:
         return 1
 
     def _export_bib(self, library, citekey):
-        """Export citation in bib format.
+        """Export citation of paper defined by `citekey` in bib format.
+
+        The citation will be added to the clipboard by means of `wl-copy`.
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey for the paper.
 
         """
         repo = self.repos[library]
@@ -533,12 +534,14 @@ class PubsServer:
         subprocess.Popen(cmd)
 
     def _send_to_dptrp1(self, library, citekey, addr):
-        """Send document to Sony DPT-RP1
+        """Send document to Sony DPT-RP1 or compatible device.
 
         Parameters
         ----------
         library : str
+            Path to the configuration file of the library.
         citekey : str
+            Citekey of the paper.
         addr: str
             IP-address of device.
 
@@ -553,12 +556,14 @@ class PubsServer:
         self.notification.show()
 
     def _update_pdf_metadata(self, library, citekey):
-        """Update the PDF's metadata
+        """Update the PDF's metadata to include author and title of paper.
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey of the paper.
 
         """
         repo = self.repos[library]
