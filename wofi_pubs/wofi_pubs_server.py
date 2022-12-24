@@ -410,16 +410,17 @@ class PubsServer:
         return entry
 
     def _add_reference(self, library, args):
-        """TODO: Docstring for _add_reference.
+        """Add a new paper to the selected 'library'.
+
+        After the paper is added to the library, the paper is added to the
+        main menu too.
 
         Parameters
         ----------
-        library : TODO
-        args : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the library.
+        args : :obj:`PubsArgs`
+            Metadata corresponding to the paper.
 
         """
         repo = self.repos[library]
@@ -430,6 +431,13 @@ class PubsServer:
             doc = update_pdf_metadata(repo, args.citekey)
 
         events.PostCommandEvent().send()
+
+        # Update main menu entries
+        paper = repo.pull_paper(args.citekey)
+
+        entry, key = self._gen_paper_entry(paper)
+        self.entries[library].append(entry)
+        self.keys[library].append(key)
 
     def _add_tag(self, tag, library, citekey):
         """Add tag to reference.
