@@ -108,26 +108,6 @@ class WofiPubs:
         self._editor = expandvars(conf_.get("editor"))
         self._dpt_devices = expandvars("${HOME}/.dpapp/devices.json")
 
-    def load_conf(self, library):
-        """Load configuration file in pubs.
-
-        Parameters
-        ----------
-        config : TODO
-
-        Returns
-        -------
-        TODO
-
-        """
-        conf = load_conf(library)
-        conf['main']['edit_cmd'] = self._editor
-        conf.write()
-        init_ui(conf)
-        plugins.load_plugins(conf, uis._ui)
-
-        return conf
-
     def menu_main(self, library="default", tag=None):
         """Present the main menu for the given library.
 
