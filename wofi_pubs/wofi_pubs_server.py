@@ -286,45 +286,69 @@ class PubsServer:
 
         Parameters
         ----------
-        repo : TODO
+        repo : :obj:`Repository`
+            The repository object containing the papers from which the
+            entries should be generated.
 
-        Returns
-        -------
-        TODO
+        Yields
+        ------
+        entry : str
+            Formatted text representing the information of each paper.
+        key : str
+            Key corresponding to the paper.
 
         """
-
         for paper in repo.all_papers():
             if tag:
                 if tag not in paper.tags:
                     continue
 
-            bibdata = paper.bibdata
-            if "author" in bibdata:
-                au = "; ".join(bibdata["author"])
-            elif "editor" in bibdata:
-                au = "; ".join(bibdata["editor"])
-            elif "key" in bibdata:
-                au = bibdata["key"]
-            elif "organization" in bibdata:
-                au = bibdata["organization"]
-            else:
-                au = "N.N."
-
-            title = bibdata["title"]
-            year = bibdata["year"]
-            key = paper.citekey
-
-            metadata = paper.metadata
-            if metadata["docfile"] is None:
-                pdf = ""
-            else:
-                pdf = ""
-
-            entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
-                     f"<tt>   </tt><i>{title}</i>\0")
+            entry, key = self._gen_paper_entry(paper)
 
             yield entry, key
+
+    def _gen_paper_entry(self, paper):
+        """Generate the paper description for the main menu.
+
+        Parameters
+        ----------
+        paper : :obj:`Paper`
+            The paper object from which the entry is generated.
+
+        Returns
+        -------
+        entry : str
+            The text that will be displayed.
+        key : str
+            The key of the corresponding paper.
+
+        """
+        bibdata = paper.bibdata
+        if "author" in bibdata:
+            au = "; ".join(bibdata["author"])
+        elif "editor" in bibdata:
+            au = "; ".join(bibdata["editor"])
+        elif "key" in bibdata:
+            au = bibdata["key"]
+        elif "organization" in bibdata:
+            au = bibdata["organization"]
+        else:
+            au = "N.N."
+
+        title = bibdata["title"]
+        year = bibdata["year"]
+        key = paper.citekey
+
+        metadata = paper.metadata
+        if metadata["docfile"] is None:
+            pdf = ""
+        else:
+            pdf = ""
+
+        entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
+                 f"<tt>   </tt><i>{title}</i>\0")
+
+        return entry, key
 
     def _get_reference_info(self, library, citekey):
         """Generate content of the reference menu.
