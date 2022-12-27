@@ -144,7 +144,7 @@ class WofiPubs:
         menu_str = (f"{ico}\t <b>{opt}</b> {inf}\0" for ico, opt, inf in menu_)
 
         # Get publication list from server
-        self._conn.send({"cmd": "get-publication-list", "library": library})
+        self._conn.send({"cmd": "get-publication-list", "library": library, "tag": tag})
         menu_entries, keys = self._conn.recv()
 
         wofi_disp = chain(menu_str, menu_entries)
@@ -165,7 +165,7 @@ class WofiPubs:
             elif option == "Add publication":
                 self.menu_add(library)
             elif option == "Search tags":
-                self.menu_tags(repo, library)
+                self.menu_tags(library)
             elif option == "Sync. repo(s)":
                 pass
             elif option == "Show all":
@@ -223,7 +223,7 @@ class WofiPubs:
                 "citekey": citekey
             })
         elif option == "Back":
-            self.menu_main(tag=tag)
+            self.menu_main(library=library, tag=tag)
         elif option == "Edit":
             self._conn.send({
                 "cmd": "edit-reference",
@@ -263,7 +263,7 @@ class WofiPubs:
         Parameters
         ----------
         library : str
-            Current library
+            Path to the configuration file of the library.
 
         Returns
         -------
@@ -281,19 +281,18 @@ class WofiPubs:
 
         self.menu_main(selected_lib)
 
-    def menu_tags(self, repo, library):
+    def menu_tags(self, library):
         """Present menu with existing tags in the library.
 
         Parameters
         ----------
-        repo : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the configuration file of the library.
 
         """
-        tags = list(repo.get_tags())
+        # Get tag list from server
+        self._conn.send({"cmd": "get-tags", "library": library})
+        tags = self._conn.recv()
 
         wofi = self._wofi_misc
         wofi.lines = min([len(tags), 15])

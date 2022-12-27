@@ -159,7 +159,14 @@ class PubsServer:
                         print(msg)
                         if msg["cmd"] == 'get-publication-list':
                             library = msg["library"]
-                            conn.send((self.entries[library], self.keys[library]))
+                            tag = msg["tag"]
+                            if tag:
+                                repo = self.repos[library]
+                                entries = self._gen_menu_entries(repo, tag)
+                                menu_entries, keys = zip(*entries)
+                                conn.send((menu_entries, keys))
+                            else:
+                                conn.send((self.entries[library], self.keys[library]))
                             # Update the ui to point to the right library
                             self.load_conf(library)
                         elif msg["cmd"] == 'get-publication-info':
@@ -185,7 +192,7 @@ class PubsServer:
                             self._export_bib(library, citekey)
                         elif msg["cmd"] == 'get-tags':
                             library = msg["library"]
-                            tags = self.repos[library].get_tags()
+                            tags = list(self.repos[library].get_tags())
                             conn.send(tags)
                         elif msg["cmd"] == 'add-tag':
                             library = msg["library"]
