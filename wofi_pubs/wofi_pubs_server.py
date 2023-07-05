@@ -37,7 +37,7 @@ class PubsServer:
 
 
     """
-    def __init__(self, config, loop):
+    def __init__(self, config, loop=None):
         self._config = config
         self._parse_config()
         self._libs_entries = dict()
@@ -150,11 +150,14 @@ class PubsServer:
         while True:
             listener = Listener(('localhost', 6000))
             running = True
-            conn = listener.accept()
+            # conn = listener.accept()
             print(f'connection accepted from {listener.last_accepted}')
             try:
                 while running:
-                    while conn.poll():
+                    conn = listener.accept()
+                    print(f'connection accepted from {listener.last_accepted}')
+                    while True:
+                    # while conn.poll():
                         msg = conn.recv()
                         print(msg)
                         if msg["cmd"] == 'get-publication-list':
@@ -199,6 +202,7 @@ class PubsServer:
                             citekey = msg["citekey"]
                             tag = msg["tag"]
                             self._add_tag(tag, library, citekey)
+                            conn.send("Done")
                         elif msg["cmd"] == 'send-to-device':
                             library = msg["library"]
                             citekey = msg["citekey"]
@@ -216,9 +220,9 @@ class PubsServer:
                             running = False
                             break
 
-                    print("now updated!")
-                    context = self.loop.get_context()
-                    context.iteration()
+                    # print("now updated!")
+                    # context = self.loop.get_context()
+                    # context.iteration()
 
             except ConnectionResetError:
                 listener.close()
@@ -629,8 +633,8 @@ def main():
     arguments = pars.parse_args()
     config = arguments.config
 
-    loop = GLib.MainLoop()
-    pubs_server = PubsServer(config, loop)
+    # loop = GLib.MainLoop()
+    pubs_server = PubsServer(config, loop=None)
     pubs_server.start_listening()
     # loop.run()
 
