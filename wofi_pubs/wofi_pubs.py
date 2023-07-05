@@ -28,7 +28,6 @@ from .dialogs import choose_file, choose_two_files, get_user_input
 
 # from .email import send_doc_per_mail
 
-
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
 
@@ -41,6 +40,7 @@ class WofiPubs:
 
 
     """
+
     def __init__(self, config):
         self._config = config
         self._parse_config()
@@ -308,11 +308,8 @@ class WofiPubs:
 
         Parameters
         ----------
-        library : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the configuration file of the library.
 
         """
         wofi = self._wofi_misc
@@ -348,57 +345,13 @@ class WofiPubs:
         elif option == "Back":
             self.menu_main(library)
 
-    def _gen_menu_entries(self, repo, tag):
-        """Generate menu entries for the library items.
-
-        Parameters
-        ----------
-        repo : TODO
-
-        Returns
-        -------
-        TODO
-
-        """
-
-        for paper in repo.all_papers():
-            if tag:
-                if tag not in paper.tags:
-                    continue
-
-            bibdata = paper.bibdata
-            if "author" in bibdata:
-                au = "; ".join(bibdata["author"])
-            elif "editor" in bibdata:
-                au = "; ".join(bibdata["editor"])
-            elif "key" in bibdata:
-                au = bibdata["key"]
-            elif "organization" in bibdata:
-                au = bibdata["organization"]
-            else:
-                au = "N.N."
-
-            title = bibdata["title"]
-            year = bibdata["year"]
-            key = paper.citekey
-
-            metadata = paper.metadata
-            if metadata["docfile"] is None:
-                pdf = ""
-            else:
-                pdf = ""
-
-            entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
-                     f"<tt>   </tt><i>{title}</i>\0")
-
-            yield entry, key
-
     def _add_doi(self, library):
         """Add publication to library from DOI.
 
         Parameters
         ----------
-        repo : `obj`:Repository
+        library : str
+            Path to the configuration file of the library.
 
 
         """
@@ -414,8 +367,8 @@ class WofiPubs:
 
         Parameters
         ----------
-        repo : `obj`:Repository
-
+        library : str
+            Path to the configuration file of the library.
 
         """
         arxiv, doc = get_user_input("ArXiv:", description="Import reference by Arxiv")
@@ -431,8 +384,8 @@ class WofiPubs:
 
         Parameters
         ----------
-        repo : `obj`:Repository
-
+        library : str
+            Path to the configuration file of the library.
 
         """
         isbn, doc = get_user_input("ISBN:", description="Import reference by ISBN")
@@ -447,8 +400,8 @@ class WofiPubs:
 
         Parameters
         ----------
-        repo : `obj`:Repository
-
+        library : str
+            Path to the configuration file of the library.
 
         """
         bibfile, doc = choose_two_files(
@@ -473,8 +426,8 @@ class WofiPubs:
 
         Parameters
         ----------
-        repo : `obj`:Repository
-
+        library : str
+            Path to the configuration file of the library.
 
         """
         tmp_bib_file = os.path.expandvars("${HOME}/.local/tmp/test.bib")
@@ -496,8 +449,10 @@ class WofiPubs:
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey for the publication.
 
         """
         # Get all tags
@@ -517,6 +472,8 @@ class WofiPubs:
                 "library": library,
                 "citekey": citekey
             })
+
+        self._conn.recv()
         self.menu_reference(library, citekey, None)
 
     def _open_doc(self, repo, citekey):
@@ -524,12 +481,10 @@ class WofiPubs:
 
         Parameters
         ----------
-        repo : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey for the publication.
 
         """
         paper = repo.pull_paper(citekey)
@@ -546,8 +501,10 @@ class WofiPubs:
 
         Parameters
         ----------
-        library : TODO
-        citekey : TODO
+        library : str
+            Path to the configuration file of the library.
+        citekey : str
+            Citekey for the publication.
 
         """
         # Read ip addresses from config file
@@ -578,28 +535,10 @@ class WofiPubs:
 
         self.menu_reference(library, citekey, tag=None)
 
-    def _update_pdf_metadata(self, repo, citekey):
-        """Update the PDF's metadata
-
-        Parameters
-        ----------
-        repo : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
-
-        """
-        paper = repo.pull_paper(citekey)
-
-        docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
-        doc = update_pdf_metadata(repo, citekey)
-        events.PostCommandEvent().send()
-
 
 class PubsArgs:
     """Dummy class to store arguments needed for the pubs commands."""
+
     def __init__(self):
         self.meta = None
         self.citekey = None
@@ -611,26 +550,6 @@ class PubsArgs:
         self.bibfile = None
         self.tags = None
         self.doc_copy = "copy"
-
-
-def gen_citekey(repo, args):
-    """Generate the citekey when importing new references.
-
-    Parameters
-    ----------
-    repo : Repository
-        Contains the references.
-    args : TODO
-
-    Returns
-    -------
-    TODO
-
-    """
-    bibentry = bibentry_from_api(args, uis._ui)
-    base_key = extract_citekey(bibentry)
-    citekey = repo.unique_citekey(base_key, uis._ui)
-    return citekey
 
 
 def name_library(config_file):
