@@ -14,10 +14,10 @@ from pubs.commands.add_cmd import bibentry_from_api
 from pubs.commands.add_cmd import command as add_cmd
 from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
-from pubs.endecoder import EnDecoder
-from pubs.repo import Repository, Paper
-from pubs.uis import init_ui
 from pubs.content import get_content
+from pubs.endecoder import EnDecoder
+from pubs.repo import Paper, Repository
+from pubs.uis import init_ui
 
 from .email import send_doc_per_mail
 from .print_to_dpt import show_sent_file, to_dpt
@@ -29,6 +29,22 @@ from gi.repository import GLib, Notify
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
 
+class PubsArgs:
+    """Dummy class to store arguments needed for the pubs commands."""
+
+    def __init__(self):
+        self.meta = None
+        self.citekey: str | None = None
+        self.doi: str | None = None
+        self.arxiv: str | None = None
+        self.isbn: str | None = None
+        self.docfile: str | None = None
+        self.citekey: str | None = None
+        self.bibfile: str | None = None
+        self.tags: str | None = None
+        self.doc_copy = "copy"
+
+
 class PubsServer:
     """Docstring for WofiPubs.
 
@@ -38,15 +54,16 @@ class PubsServer:
 
 
     """
+
     def __init__(self, config, loop=None):
         self._config = config
         self._parse_config()
         self._libs_entries = dict()
         self.notification = None
         self.loop = loop
-        self.entries = dict()
-        self.keys = dict()
-        self.repos = dict()
+        self.entries: dict[str, list[str]] = dict()
+        self.keys: dict[str, list[str]] = dict()
+        self.repos: dict[str, Repository] = dict()
         Notify.init("Wofi-pubs")
         self.notification = None
 
@@ -87,12 +104,12 @@ class PubsServer:
         self._editor = expandvars(conf_.get("editor"))
         self._dpt_devices = expandvars("${HOME}/.dpapp/devices.json")
 
-    def load_conf(self, library):
+    def load_conf(self, library: str):
         """Load configuration file in pubs.
 
         Parameters
         ----------
-        config : TODO
+        library : TODO
 
         Returns
         -------
@@ -108,7 +125,7 @@ class PubsServer:
 
         return conf
 
-    def _load_publications(self, tag=None):
+    def _load_publications(self, tag: str = None):
         """Present the main menu for the given library.
 
         Parameters
@@ -158,7 +175,7 @@ class PubsServer:
                     conn = listener.accept()
                     print(f'connection accepted from {listener.last_accepted}')
                     while True:
-                    # while conn.poll():
+                        # while conn.poll():
                         msg = conn.recv()
                         print(msg)
                         if msg["cmd"] == 'get-publication-list':
@@ -233,7 +250,7 @@ class PubsServer:
                 listener.close()
                 continue
 
-    def menu_tags(self, repo, library):
+    def menu_tags(self, repo: Repository, library: str):
         """Present menu with existing tags in the library.
 
         Parameters
@@ -255,7 +272,7 @@ class PubsServer:
 
         self.menu_main(library, sel_tag)
 
-    def menu_add(self, repo, library):
+    def menu_add(self, repo: Repository, library: str):
         """Show menu to add a new reference to the library.
 
         Parameters
@@ -299,7 +316,7 @@ class PubsServer:
         elif option == "Back":
             self.menu_main(library)
 
-    def _gen_menu_entries(self, repo, tag):
+    def _gen_menu_entries(self, repo: Repository, tag: str):
         """Generate menu entries for the library items.
 
         Parameters
@@ -325,7 +342,7 @@ class PubsServer:
 
             yield entry, key
 
-    def _gen_paper_entry(self, paper):
+    def _gen_paper_entry(self, paper: Paper):
         """Generate the paper description for the main menu.
 
         Parameters
@@ -430,7 +447,7 @@ class PubsServer:
 
         return entry
 
-    def _add_reference(self, library, args):
+    def _add_reference(self, library: str, args: PubsArgs):
         """Add a new paper to the selected 'library'.
 
         After the paper is added to the library, the paper is added to the
@@ -460,7 +477,7 @@ class PubsServer:
         self.entries[library].append(entry)
         self.keys[library].append(key)
 
-    def _add_tag(self, tag, library, citekey):
+    def _add_tag(self, tag: str, library: str, citekey: str):
         """Add tag to reference.
 
         Parameters
@@ -479,7 +496,7 @@ class PubsServer:
         repo.push_paper(paper, overwrite=True, event=False)
         events.PostCommandEvent().send()
 
-    def _open_doc(self, library, citekey):
+    def _open_doc(self, library: str, citekey: str):
         """Open pdf file with default pdf reader.
 
         Parameters
@@ -500,7 +517,7 @@ class PubsServer:
 
         return 1
 
-    def _edit_bib(self, library, citekey):
+    def _edit_bib(self, library: str, citekey: str):
         """Edit bibfile corresponding to the citekey.
 
         Parameters
@@ -520,7 +537,7 @@ class PubsServer:
 
         return 1
 
-    def _export_bib(self, library, citekey):
+    def _export_bib(self, library: str, citekey: str):
         """Export citation of paper defined by `citekey` in bib format.
 
         The citation will be added to the clipboard by means of `wl-copy`.
@@ -545,7 +562,7 @@ class PubsServer:
         cmd = ["wl-copy", f"{bibdata_raw}"]
         subprocess.Popen(cmd)
 
-    def _send_to_dptrp1(self, library, citekey, addr):
+    def _send_to_dptrp1(self, library: str, citekey: str, addr: str):
         """Send document to Sony DPT-RP1 or compatible device.
 
         Parameters
@@ -567,7 +584,7 @@ class PubsServer:
                                      (addr, remote_path))
         self.notification.show()
 
-    def _update_pdf_metadata(self, library, citekey):
+    def _update_pdf_metadata(self, library: str, citekey: str):
         """Update the PDF's metadata to include author and title of paper.
 
         Parameters
@@ -586,22 +603,7 @@ class PubsServer:
         events.PostCommandEvent().send()
 
 
-class PubsArgs:
-    """Dummy class to store arguments needed for the pubs commands."""
-    def __init__(self):
-        self.meta = None
-        self.citekey = None
-        self.doi = None
-        self.arxiv = None
-        self.isbn = None
-        self.docfile = None
-        self.citekey = None
-        self.bibfile = None
-        self.tags = None
-        self.doc_copy = "copy"
-
-
-def gen_citekey(repo, args):
+def gen_citekey(repo: Repository, args: PubsArgs):
     """Generate the citekey when importing new references.
 
     Parameters
