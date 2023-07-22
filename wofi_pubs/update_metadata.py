@@ -18,7 +18,7 @@ def update_pdf_metadata(repo, citekey):
     bib = repo.databroker.pull_bibentry(citekey)[citekey]
 
     # Get the needed information
-    if bib["type"] == "misc":
+    if bib["ENTRYTYPE"] == "misc":
         author = bib["organization"]
         title = bib["title"]
     else:
@@ -32,12 +32,6 @@ def update_pdf_metadata(repo, citekey):
         '-overwrite_original', local_path
     ]
     p2 = subprocess.run(exiftool_cmd, check=False)
-
-    # p3 = subprocess.Popen(f"qpdf --linearize {local_path} tmp.pdf", shell=True)
-    # p3.wait()
-
-    # p4 = subprocess.Popen(f"mv tmp.pdf {local_path}", shell=True)
-    # p4.wait()
 
     return 1
 
