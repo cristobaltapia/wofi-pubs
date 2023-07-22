@@ -15,8 +15,9 @@ from pubs.commands.add_cmd import command as add_cmd
 from pubs.commands.edit_cmd import command as edit_cmd
 from pubs.config import load_conf
 from pubs.endecoder import EnDecoder
-from pubs.repo import Repository
+from pubs.repo import Repository, Paper
 from pubs.uis import init_ui
+from pubs.content import get_content
 
 from .email import send_doc_per_mail
 from .print_to_dpt import show_sent_file, to_dpt
@@ -614,7 +615,13 @@ def gen_citekey(repo, args):
     TODO
 
     """
-    bibentry = bibentry_from_api(args, uis._ui)
+    decoder = EnDecoder()
+    if args.bibfile:
+        bibentry_raw = get_content(args.bibfile, uis._ui)
+        bibentry = decoder.decode_bibdata(bibentry_raw)
+    else:
+        bibentry = bibentry_from_api(args, uis._ui)
+
     base_key = extract_citekey(bibentry)
     citekey = repo.unique_citekey(base_key, uis._ui)
     return citekey
