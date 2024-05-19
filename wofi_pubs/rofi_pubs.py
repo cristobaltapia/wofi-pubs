@@ -131,16 +131,8 @@ class RofiPubs:
         """
         key = None
         indices = None
+
         options = {
-            "key-quit": "Alt+q",
-            "key-send-dpt": "Alt+y",
-            "key-send-email": "Alt+m",
-            "key-add": "Alt+a",
-            "key-refresh": "Alt+r",
-            "key-edit": "Alt+e",
-            "key-help": "Alt+h",
-            "key-change-lib": "Alt+l",
-            "key-open": "Enter",
             "eh": 3,
             "sep": "|",
             "markup_rows": True,
