@@ -16,6 +16,7 @@ python-wofi = "^0.3.0"
 PyGObject = "^3.36.1"
 dpt-rp1-py = "^0.1.11"
 bibtexparser = "^1.4.0"
+papis-python-rofi = "^1.0.3"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.2.2"
@@ -24,6 +25,7 @@ pydocstyle = "^5.0.2"
 
 [tool.poetry.scripts]
 wofi-pubs = "wofi_pubs.wofi_pubs:main"
+rofi-pubs = "wofi_pubs.rofi_pubs:main"
 wofi-pubs-server = "wofi_pubs.wofi_pubs_server:main"
 
 [build-system]

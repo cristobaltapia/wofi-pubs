@@ -23,7 +23,7 @@ from .email import send_doc_per_mail
 from .print_to_dpt import show_sent_file, to_dpt
 from .update_metadata import update_pdf_metadata
 
-gi.require_version('Notify', '0.7')
+gi.require_version("Notify", "0.7")
 from gi.repository import GLib, Notify
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
@@ -74,7 +74,7 @@ class PubsServer:
         config_file = self._config
 
         with open(config_file, "r") as f:
-            file_content = '[general]\n' + f.read()
+            file_content = "[general]\n" + f.read()
 
         config_parser = configparser.RawConfigParser()
         config_parser.read_string(file_content)
@@ -89,6 +89,7 @@ class PubsServer:
             "cache_libs": "$HOME/.local/tmp/pubs_wofi_libs",
             "terminal_edit": "$TERM -e nvim",
             "editor": "$TERM -e nvim",
+            "picker": "wofi",
         }
 
         conf_ = config_parser["general"]
@@ -103,6 +104,7 @@ class PubsServer:
         self._terminal = conf_.get("TERMINAL_EDIT")
         self._editor = expandvars(conf_.get("editor"))
         self._dpt_devices = expandvars("${HOME}/.dpapp/devices.json")
+        self._picker = conf_.get("picker")
 
     def load_conf(self, library: str):
         """Load configuration file in pubs.
@@ -118,7 +120,7 @@ class PubsServer:
 
         """
         conf = load_conf(library)
-        conf['main']['edit_cmd'] = self._editor
+        conf["main"]["edit_cmd"] = self._editor
         conf.write()
         init_ui(conf)
         plugins.load_plugins(conf, uis._ui)
@@ -166,19 +168,19 @@ class PubsServer:
 
         """
         while True:
-            listener = Listener(('localhost', 6000))
+            listener = Listener(("localhost", 6000))
             running = True
             # conn = listener.accept()
-            print(f'connection accepted from {listener.last_accepted}')
+            print(f"connection accepted from {listener.last_accepted}")
             try:
                 while running:
                     conn = listener.accept()
-                    print(f'connection accepted from {listener.last_accepted}')
+                    print(f"connection accepted from {listener.last_accepted}")
                     while True:
                         # while conn.poll():
                         msg = conn.recv()
                         print(msg)
-                        if msg["cmd"] == 'get-publication-list':
+                        if msg["cmd"] == "get-publication-list":
                             library = msg["library"]
                             tag = msg["tag"]
                             if tag:
@@ -190,50 +192,52 @@ class PubsServer:
                                 conn.send((self.entries[library], self.keys[library]))
                             # Update the ui to point to the right library
                             self.load_conf(library)
-                        elif msg["cmd"] == 'get-publication-info':
+                        elif msg["cmd"] == "get-publication-info":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             info = self._get_reference_info(library, citekey)
                             conn.send(info)
-                        elif msg["cmd"] == 'add-reference':
+                        elif msg["cmd"] == "add-reference":
                             library = msg["library"]
                             args = msg["args"]
                             self._add_reference(library, args)
-                        elif msg["cmd"] == 'open-document':
+                        elif msg["cmd"] == "open-document":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             self._open_doc(library, citekey)
-                        elif msg["cmd"] == 'edit-reference':
+                        elif msg["cmd"] == "edit-reference":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             self._edit_bib(library, citekey)
-                        elif msg["cmd"] == 'export-reference':
+                        elif msg["cmd"] == "export-reference":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             self._export_bib(library, citekey)
-                        elif msg["cmd"] == 'get-tags':
+                        elif msg["cmd"] == "get-tags":
                             library = msg["library"]
                             tags = list(self.repos[library].get_tags())
                             conn.send(tags)
-                        elif msg["cmd"] == 'add-tag':
+                        elif msg["cmd"] == "add-tag":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             tag = msg["tag"]
                             self._add_tag(tag, library, citekey)
                             conn.send("Done")
-                        elif msg["cmd"] == 'send-to-device':
+                        elif msg["cmd"] == "send-to-device":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             addr = msg["addr"]
                             self._send_to_dptrp1(library, citekey, addr)
-                        elif msg["cmd"] == 'send-per-email':
+                        elif msg["cmd"] == "send-per-email":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             send_doc_per_mail(self.repos[library], citekey)
-                        elif msg["cmd"] == 'update-pdf-metadata':
+                        elif msg["cmd"] == "update-pdf-metadata":
                             library = msg["library"]
                             citekey = msg["citekey"]
                             self._update_pdf_metadata(library, citekey)
+                        elif msg["cmd"] == "restart-server":
+                            raise SystemExit
                         else:
                             running = False
                             break
@@ -373,15 +377,26 @@ class PubsServer:
         title = bibdata["title"]
         year = bibdata["year"]
         key = paper.citekey
+        _tags = paper.tags
+        if len(_tags) == 0:
+            tags = ""
+        else:
+            tags = "(" + ";".join(list(_tags)) + ")"
 
         metadata = paper.metadata
         if metadata["docfile"] is None:
             pdf = ""
         else:
-            pdf = ""
+            pdf = '<span foreground="#ebcb8b"></span>'
 
-        entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
-                 f"<tt>   </tt><i>{title}</i>\0")
+        entry = (
+                f"<b>{title}</b>\n"
+                + f"      <i>{au}</i>\n"
+                + f'      <span foreground="#bf616a"><b>{year}</b></span> '
+                + f' {pdf} <span foreground="#a3be8c"><i>{tags}</i></span> '
+            )
+        if self._picker == "rofi":
+            entry += "\0"
 
         return entry, key
 
@@ -436,14 +451,18 @@ class PubsServer:
         ye = "Year:"
 
         if sub is None:
-            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
+            entry = (
+                f" <tt><b>{au:<11}</b></tt>\n{author}\0"
+                + f" <tt><b>{ti:<11}</b></tt>\n{title}\0"
+                + f" <tt><b>{ye:<11}</b></tt>\n{year}\0"
+            )
         else:
-            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
-                     f" <tt><b>{su:<11}</b></tt>\n{sub}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
+            entry = (
+                f" <tt><b>{au:<11}</b></tt>\n{author}\0"
+                + f" <tt><b>{ti:<11}</b></tt>\n{title}\0"
+                + f" <tt><b>{su:<11}</b></tt>\n{sub}\0"
+                + f" <tt><b>{ye:<11}</b></tt>\n{year}\0"
+            )
 
         return entry
 
@@ -578,10 +597,12 @@ class PubsServer:
         repo = self.repos[library]
         remote_path = to_dpt(repo, citekey, addr)
 
-        self.notification = Notify.Notification.new('Wofi-pubs',
-                                                    f'{citekey} sent to DPT-RP1')
-        self.notification.add_action("clicked", "Display file in device", show_sent_file,
-                                     (addr, remote_path))
+        self.notification = Notify.Notification.new(
+            "Wofi-pubs", f"{citekey} sent to DPT-RP1"
+        )
+        self.notification.add_action(
+            "clicked", "Display file in device", show_sent_file, (addr, remote_path)
+        )
         self.notification.show()
 
     def _update_pdf_metadata(self, library: str, citekey: str):
@@ -630,7 +651,9 @@ def gen_citekey(repo: Repository, args: PubsArgs):
 
 
 def main():
-    pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
+    pars = argparse.ArgumentParser(
+        description="Manage your pubs bibliography with wofi"
+    )
     pars.add_argument(
         "config",
         type=str,
