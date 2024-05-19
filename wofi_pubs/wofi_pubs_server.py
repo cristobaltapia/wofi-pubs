@@ -3,6 +3,7 @@ import configparser
 import json
 import os
 import subprocess
+import threading
 from multiprocessing.connection import Listener
 from os.path import expandvars
 
@@ -55,15 +56,15 @@ class PubsServer:
 
     """
 
-    def __init__(self, config, loop=None):
+    def __init__(self, config):
         self._config = config
         self._parse_config()
         self._libs_entries = dict()
         self.notification = None
-        self.loop = loop
         self.entries: dict[str, list[str]] = dict()
         self.keys: dict[str, list[str]] = dict()
         self.repos: dict[str, Repository] = dict()
+        # Initialize notifications
         Notify.init("Wofi-pubs")
         self.notification = None
 
@@ -161,10 +162,9 @@ class PubsServer:
             self.repos[config_path] = repo
 
     def start_listening(self):
-        """Start the server.
+        """Start the listening loop of the server.
 
-        Thus function start the listening loop of the server. It listens for
-        requests from the client and executes the needed functions.
+        It listens for requests from the client and executes the needed functions.
 
         """
         while True:
@@ -241,10 +241,6 @@ class PubsServer:
                         else:
                             running = False
                             break
-
-                    # print("now updated!")
-                    # context = self.loop.get_context()
-                    # context.iteration()
 
             except ConnectionResetError:
                 listener.close()
@@ -364,15 +360,15 @@ class PubsServer:
         """
         bibdata = paper.bibdata
         if "author" in bibdata:
-            au = "; ".join(bibdata["author"])
+            author = "; ".join(bibdata["author"])
         elif "editor" in bibdata:
-            au = "; ".join(bibdata["editor"])
+            author = "; ".join(bibdata["editor"])
         elif "key" in bibdata:
-            au = bibdata["key"]
+            author = bibdata["key"]
         elif "organization" in bibdata:
-            au = bibdata["organization"]
+            author = bibdata["organization"]
         else:
-            au = "N.N."
+            author = "N.N."
 
         title = bibdata["title"]
         year = bibdata["year"]
@@ -385,16 +381,16 @@ class PubsServer:
 
         metadata = paper.metadata
         if metadata["docfile"] is None:
-            pdf = ""
+            pdf = ""
         else:
             pdf = '<span foreground="#ebcb8b"></span>'
 
         entry = (
-                f"<b>{title}</b>\n"
-                + f"      <i>{au}</i>\n"
-                + f'      <span foreground="#bf616a"><b>{year}</b></span> '
-                + f' {pdf} <span foreground="#a3be8c"><i>{tags}</i></span> '
-            )
+            f"<b>{title}</b>\n"
+            + f"      <i>{author}</i>\n"
+            + f'      <span foreground="#bf616a"><b>{year}</b></span> '
+            + f' {pdf} <span foreground="#a3be8c"><i>{tags}</i></span> '
+        )
         if self._picker == "rofi":
             entry += "\0"
 
@@ -665,10 +661,12 @@ def main():
     arguments = pars.parse_args()
     config = arguments.config
 
-    # loop = GLib.MainLoop()
-    pubs_server = PubsServer(config, loop=None)
+    loop = GLib.MainLoop()
+    pubs_server = PubsServer(config)
+    # Run the GLib main loop in a separate thread
+    threading.Thread(target=loop.run, daemon=True).start()
+
     pubs_server.start_listening()
-    # loop.run()
 
 
 if __name__ == "__main__":

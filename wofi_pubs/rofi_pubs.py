@@ -14,20 +14,10 @@ from os.path import expandvars
 
 import bibtexparser
 
-# from pubs import content, events, plugins, uis
-# from pubs.bibstruct import extract_citekey
-# from pubs.commands.add_cmd import bibentry_from_api
-# from pubs.commands.add_cmd import command as add_cmd
-# from pubs.commands.edit_cmd import command as edit_cmd
-# from pubs.config import load_conf
-# from pubs.endecoder import EnDecoder
-# from pubs.repo import Repository
-# from pubs.uis import init_ui
 from rofi import Rofi
 
 from .dialogs import choose_file, choose_two_files, get_user_input
 
-# from .email import send_doc_per_mail
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
@@ -175,25 +165,25 @@ class RofiPubs:
                 break
             if key == self.add_key:
                 self.menu_add(library)
-            # docs = [self.documents[i] for i in indices]
+                key = -1
             if key == self.open_key:
-                self._conn.send(
-                    {"cmd": "open-document", "library": library, "citekey": citekey}
-                )
+                for k in indices:
+                    key_i = keys[k]
+                    self._conn.send(
+                        {"cmd": "open-document", "library": library, "citekey": key_i}
+                    )
             elif key == self.send_dpt_key:
                 self._send_to_dptrp1(library, citekey)
+                key = -1
             elif key == self.send_mail_key:
                 self._conn.send(
                     {"cmd": "send-per-email", "library": library, "citekey": citekey}
                 )
-                break
-
+                key = -1
             elif key == self.export_key:
                 self._conn.send(
                     {"cmd": "export-reference", "library": library, "citekey": citekey}
                 )
-            # elif key == self.help_key:
-            #     self.window.error(self.help_message)
             elif key == self.update_meta_key:
                 self._conn.send(
                     {
@@ -204,6 +194,7 @@ class RofiPubs:
                 )
             elif key == self.change_lib_key:
                 self.menu_change_lib(library)
+                key = -1
             elif key == self.refresh_key:
                 self.refresh()
 
@@ -307,18 +298,17 @@ class RofiPubs:
             "case_sensitive": False,
         }
 
-        while not (key == self.quit_key or key == self.esc_key):
-            indices, key = self._rofi.select(
-                "Filter: ",
-                # [header_filter(d) for d in menu_entries],
-                configs_files,
-                select=indices,
-                **options,
-            )
+        indices, key = self._rofi.select(
+            "Filter: ",
+            # [header_filter(d) for d in menu_entries],
+            configs_files,
+            select=indices,
+            **options,
+        )
 
-            selected_lib = self._config_dir + "/" + configs_files[indices[0]]
+        selected_lib = self._config_dir + "/" + configs_files[indices[0]]
 
-            self.menu_main(selected_lib)
+        self.menu_main(selected_lib)
 
     def menu_add(self, library):
         """Menu to add a new reference.
@@ -540,9 +530,10 @@ class RofiPubs:
                         "citekey": citekey,
                     }
                 )
+            break
 
         # Bach to the main manu
-        self.menu_main(library, tag=None)
+        # self.menu_main(library, tag=None)
 
 
 class PubsArgs:

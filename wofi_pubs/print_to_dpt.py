@@ -250,16 +250,16 @@ def to_dpt(repo, citekey, addr):
 
     return remote_path
 
-def show_sent_file(notification, action_name, data):
-    """TODO: Docstring for show_sent_file.
+def show_sent_file(notification: str, action_name, data):
+    """Show document in device.
 
     Parameters
     ----------
-    remote_path : TODO
-
-    Returns
-    -------
-    TODO
+    notification :
+    action_name : str
+        Action on the notification
+    data :
+        Data passed to the notification.
 
     """
     addr = data[0]
