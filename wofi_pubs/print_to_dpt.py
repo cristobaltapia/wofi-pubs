@@ -1,9 +1,16 @@
 import re
+import time
 import subprocess
+import gi
 import sys
 import unicodedata
 from pathlib import Path, PurePath
 from os.path import expanduser
+from itertools import cycle
+from multiprocessing.pool import ThreadPool
+
+gi.require_version("Notify", "0.7")
+from gi.repository import Notify
 
 from dptrp1.dptrp1 import DigitalPaper
 
@@ -19,42 +26,18 @@ OUT_DEF = {
         "out_folder": "Articles",
         "out_name": [["year", "title", "subtitle"], ["year", "title"]],
     },
-    "report": {
-        "out_folder": "Reports",
-        "out_name": [["year", "title"]]
-    },
-    "techreport": {
-        "out_folder": "Reports",
-        "out_name": [["year", "title"]]
-    },
-    "inproceedings": {
-        "out_folder": "Proceedings",
-        "out_name": [["year", "title"]]
-    },
-    "book": {
-        "out_folder": "Books",
-        "out_name": [["year", "title"]]
-    },
+    "report": {"out_folder": "Reports", "out_name": [["year", "title"]]},
+    "techreport": {"out_folder": "Reports", "out_name": [["year", "title"]]},
+    "inproceedings": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
+    "book": {"out_folder": "Books", "out_name": [["year", "title"]]},
     "inbook": {
         "out_folder": "Articles",
         "out_name": [["year", "title", "subtitle"], ["year", "title"]],
     },
-    "conference": {
-        "out_folder": "Proceedings",
-        "out_name": [["year", "title"]]
-    },
-    "standard": {
-        "out_folder": "Standards",
-        "out_name": [["year", "key", "title"]]
-    },
-    "misc": {
-        "out_folder": "Standards",
-        "out_name": [["year", "key", "title"]]
-    },
-    "phdthesis": {
-        "out_folder": "Thesis",
-        "out_name": [["year", "author", "title"]]
-    },
+    "conference": {"out_folder": "Proceedings", "out_name": [["year", "title"]]},
+    "standard": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
+    "misc": {"out_folder": "Standards", "out_name": [["year", "key", "title"]]},
+    "phdthesis": {"out_folder": "Thesis", "out_name": [["year", "author", "title"]]},
     "mastersthesis": {
         "out_folder": "Thesis",
         "out_name": [["year", "author", "title"]],
@@ -74,6 +57,7 @@ class Document(object):
     repo : TODO
 
     """
+
     def __init__(self, key, repo, lib_name):
         self._key = key
         self._repo = repo
@@ -200,8 +184,8 @@ class Document(object):
             try:
                 out_name = "".join(slugify(entry[ix]) + "_" for ix in struct)
                 break
-            except:
-                pass
+            except LookupError:
+                raise Exception(f"Could not generate name for '{struct}'")
 
         return PurePath(out_name + ".pdf")
 
@@ -235,7 +219,9 @@ def to_dpt(repo, citekey, addr):
     try:
         dpt_obj = connect_to_dpt(addr)
     except OSError:
-        print("Unable to reach device, verify it is connected to the same network segment.")
+        print(
+            "Unable to reach device, verify it is connected to the same network segment."
+        )
         sys.exit(1)
 
     # FIXME
@@ -246,9 +232,34 @@ def to_dpt(repo, citekey, addr):
     # Create document
     doc = Document(key=citekey, repo=repo, lib_name=lib_name)
 
-    remote_path = doc.to_dptrp1(dpt_obj)
+    # The thread is used in order to be able to have a notifcation updating
+    # while the document is being sent.
+    pool = ThreadPool(processes=1)
+    async_result = pool.apply_async(doc.to_dptrp1, (dpt_obj,))
+
+    dots = cycle(["." * k for k in range(6)])
+
+    # Create notification
+    notification = Notify.Notification.new(
+        "Wofi-pubs", f"Sending {citekey} to device\n<b>.</b>"
+    )
+    notification.show()
+    # This hint allows us to update the notification later
+    notification.set_hint("string:x-canonical-private-synchronous:Wofi-pubs")
+
+    # Update the notification while the file is being uploaded
+    while not async_result.ready():
+        time.sleep(1)
+        notification.update("Wofi-pubs", f"Sending {citekey} to device\n<b>{next(dots)}</b>")
+        notification.show()
+
+    notification.close()
+
+    # remote_path = doc.to_dptrp1(dpt_obj)
+    remote_path = async_result.get()
 
     return remote_path
+
 
 def show_sent_file(notification: str, action_name, data):
     """Show document in device.
@@ -268,7 +279,9 @@ def show_sent_file(notification: str, action_name, data):
     try:
         dpt_obj = connect_to_dpt(addr)
     except OSError:
-        print("Unable to reach device, verify it is connected to the same network segment.")
+        print(
+            "Unable to reach device, verify it is connected to the same network segment."
+        )
         sys.exit(1)
 
     info = dpt_obj.list_document_info(remote_path.__bytes__())
@@ -282,13 +295,16 @@ def sync_annotated_docs(args):
     try:
         dpt_obj = connect_to_dpt(addr)
     except OSError:
-        print("Unable to reach device, verify it is connected to the same network segment.")
+        print(
+            "Unable to reach device, verify it is connected to the same network segment."
+        )
         sys.exit(1)
 
 
 def get_dptrp1_addr():
-    sp = subprocess.run(["avahi-resolve", "-4", "-n", "digitalpaper.local"],
-                        stdout=subprocess.PIPE)
+    sp = subprocess.run(
+        ["avahi-resolve", "-4", "-n", "digitalpaper.local"], stdout=subprocess.PIPE
+    )
     stdout = sp.stdout.decode("UTF-8")
     m = re.search("\\t[0-9\.]+\\n", stdout)
     try:

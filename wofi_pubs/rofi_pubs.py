@@ -18,7 +18,6 @@ from rofi import Rofi
 
 from .dialogs import choose_file, choose_two_files, get_user_input
 
-
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
 
 
@@ -45,10 +44,10 @@ class RofiPubs:
     refresh_key = 9
     update_meta_key = 10
 
-    def __init__(self, config):
+    def __init__(self, config: str):
         self._config = config
         self._parse_config()
-        self._libs_entries = dict()
+        self._libs_entries : dict[str, str] = dict()
         self.notification = None
         self._conn = Client(("localhost", 6000))
         self.keys = self.get_keys()
@@ -586,6 +585,7 @@ def main():
 
     arguments = pars.parse_args()
     config = arguments.config
+
 
     # loop = GLib.MainLoop()
     wofi_pubs = RofiPubs(config)
