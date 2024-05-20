@@ -7,13 +7,10 @@ import os
 import re
 import shlex
 import subprocess
-import sys
-from itertools import chain
 from multiprocessing.connection import Client
 from os.path import expandvars
 
 import bibtexparser
-
 from rofi import Rofi
 
 from .dialogs import choose_file, choose_two_files, get_user_input
@@ -47,7 +44,7 @@ class RofiPubs:
     def __init__(self, config: str):
         self._config = config
         self._parse_config()
-        self._libs_entries : dict[str, str] = dict()
+        self._libs_entries: dict[str, str] = dict()
         self.notification = None
         self._conn = Client(("localhost", 6000))
         self.keys = self.get_keys()
@@ -112,10 +109,6 @@ class RofiPubs:
             The default library.
         tag : str
             Present only documents with the given tag.
-
-        Returns
-        -------
-        TODO
 
         """
         key = None
@@ -196,80 +189,6 @@ class RofiPubs:
                 key = -1
             elif key == self.refresh_key:
                 self.refresh()
-
-    def menu_reference(self, library, citekey, tag):
-        """Menu to show the information of a given reference.
-
-        Parameters
-        ----------
-        repo : TODO
-        citekey : TODO
-
-        Returns
-        -------
-        TODO
-
-        """
-        menu_ = [
-            ("", "Open"),
-            ("", "Export"),
-            ("", "Send to DPT-RP1"),
-            ("", "From same author(s)"),
-            ("", "Edit"),
-            ("", "Add tag"),
-            ("", "Back"),
-            ("", "Send per E-Mail"),
-            ("", "Update PDF metadata"),
-            ("", "More actions"),
-        ]
-
-        menu_str = "".join(f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
-        menu_str += "\0"
-
-        self._conn.send(
-            {"cmd": "get-publication-info", "library": library, "citekey": citekey}
-        )
-        paper_info = self._conn.recv()
-
-        wofi_disp = menu_str + paper_info
-
-        wofi = self._wofi_ref
-        wofi.lines = 16
-
-        selected = wofi.select("...", wofi_disp, keep_newlines=True)
-
-        option = menu_[selected[0]][1]
-
-        if option == "Open":
-            self._conn.send(
-                {"cmd": "open-document", "library": library, "citekey": citekey}
-            )
-        elif option == "Back":
-            self.menu_main(library=library, tag=tag)
-        elif option == "Edit":
-            self._conn.send(
-                {"cmd": "edit-reference", "library": library, "citekey": citekey}
-            )
-        elif option == "Export":
-            self._conn.send(
-                {"cmd": "export-reference", "library": library, "citekey": citekey}
-            )
-        elif option == "Add tag":
-            self._add_tag(library, citekey)
-        elif option == "Send to DPT-RP1":
-            self._send_to_dptrp1(library, citekey)
-        elif option == "Send per E-Mail":
-            self._conn.send(
-                {"cmd": "send-per-email", "library": library, "citekey": citekey}
-            )
-        elif option == "Update PDF metadata":
-            self._conn.send(
-                {"cmd": "update-pdf-metadata", "library": library, "citekey": citekey}
-            )
-        # elif option == "More actions":
-        #     self._ref_menu_more(repo, citekey)
-        else:
-            pass
 
     def menu_change_lib(self, library):
         """Present menu to change library.
@@ -585,7 +504,6 @@ def main():
 
     arguments = pars.parse_args()
     config = arguments.config
-
 
     # loop = GLib.MainLoop()
     wofi_pubs = RofiPubs(config)
