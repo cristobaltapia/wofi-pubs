@@ -43,13 +43,13 @@ class RofiPubs:
 
     def __init__(self, config: str):
         self._config = config
+        self._default_lib: str | None = None
         self._parse_config()
         self._libs_entries: dict[str, str] = dict()
-        self.notification = None
         self._conn = Client(("localhost", 6000))
         self.keys = self.get_keys()
 
-        self._rofi = Rofi()
+        self._rofi: Rofi = Rofi()
 
     def _parse_config(self):
         """Parse the configuration file."""
@@ -88,16 +88,15 @@ class RofiPubs:
 
     def get_keys(self):
         return {
-            "key%s" % self.open_key: ("Enter", " Open"),
-            "key%s" % self.edit_key: ("Control-e", " Edit"),
-            "key%s" % self.add_key: ("Control-a", " Add"),
-            "key%s" % self.send_dpt_key: ("Control-t", " Send to DPT"),
-            "key%s" % self.export_key: ("Control-n", " Export"),
-            "key%s" % self.send_mail_key: ("Alt-m", " Send Email"),
-            "key%s" % self.change_lib_key: ("Alt-l", "Change lib"),
-            "key%s" % self.refresh_key: ("Alt-r", "Refresh"),
-            "key%s" % self.quit_key: ("Alt-q", "Quit"),
-            "key%s" % self.update_meta_key: ("Alt-a", "Update metadata"),
+            f"key{self.open_key}": ("Enter", " Open"),
+            f"key{self.edit_key}": ("Control-e", " Edit"),
+            f"key{self.add_key}": ("Control-a", " Add"),
+            f"key{self.send_dpt_key}": ("Control-t", " Send to DPT"),
+            f"key{self.export_key}": ("Control-n", " Export"),
+            f"key{self.send_mail_key}": ("Alt-m", " Send Email"),
+            f"key{self.change_lib_key}": ("Alt-l", "Change lib"),
+            f"key{self.refresh_key}": ("Alt-r", "Refresh"),
+            f"key{self.update_meta_key}": ("Alt-a", "Update metadata"),
         }
 
     def menu_main(self, library="default", tag=None):
@@ -185,24 +184,13 @@ class RofiPubs:
                     }
                 )
             elif key == self.change_lib_key:
-                self.menu_change_lib(library)
+                self.menu_change_lib()
                 key = -1
             elif key == self.refresh_key:
                 self.refresh()
 
-    def menu_change_lib(self, library):
-        """Present menu to change library.
-
-        Parameters
-        ----------
-        library : str
-            Path to the configuration file of the library.
-
-        Returns
-        -------
-        TODO
-
-        """
+    def menu_change_lib(self):
+        """Present menu to change library."""
         configs_dir = self._config_dir
         configs_files = os.listdir(configs_dir)
 
@@ -228,7 +216,7 @@ class RofiPubs:
 
         self.menu_main(selected_lib)
 
-    def menu_add(self, library):
+    def menu_add(self, library: str):
         """Menu to add a new reference.
 
         Parameters
@@ -238,18 +226,17 @@ class RofiPubs:
 
         """
         menu_ = [
-            ("", "DOI"),
-            ("", "arXiv"),
-            ("", "ISBN"),
-            ("", "Bibfile"),
-            ("", "Manual Bibfile"),
-            ("", "Back"),
+            ('<span foreground="#ebcb8b"></span>', "DOI"),
+            ('<span foreground="#ebcb8b"></span>', "arXiv"),
+            ('<span foreground="#ebcb8b"></span>', "ISBN"),
+            ('<span foreground="#ebcb8b"></span>', "Bibfile"),
+            ('<span foreground="#ebcb8b"></span>', "Manual Bibfile"),
         ]
 
         menu_str = [f"{ico} <b>{opt}</b>\n" for ico, opt in menu_]
 
-        key = None
-        indices = None
+        key: int | None = None
+        indices: list | None = None
         options = {
             "eh": 1,
             "sep": "|",
@@ -279,11 +266,9 @@ class RofiPubs:
                 self._add_bibfile(library)
             elif option == "Manual Bibfile":
                 self._add_bibfile_manual(library)
-            elif option == "Back":
-                self.menu_main(library)
             break
 
-    def _add_doi(self, library):
+    def _add_doi(self, library: str):
         """Add publication to library from DOI.
 
         Parameters
@@ -300,7 +285,7 @@ class RofiPubs:
         args.docfile = doc
         self._conn.send({"cmd": "add-reference", "library": library, "args": args})
 
-    def _add_arxiv(self, library):
+    def _add_arxiv(self, library: str):
         """Add publication to library from ArXiv.
 
         Parameters
@@ -317,7 +302,7 @@ class RofiPubs:
 
         self._conn.send({"cmd": "add-reference", "library": library, "args": args})
 
-    def _add_isbn(self, library):
+    def _add_isbn(self, library: str):
         """Add publication to library from ISBN.
 
         Parameters
@@ -333,7 +318,7 @@ class RofiPubs:
         args.docfile = doc
         self._conn.send({"cmd": "add-reference", "library": library, "args": args})
 
-    def _add_bibfile(self, library):
+    def _add_bibfile(self, library: str):
         """Add publication to library from bibfile.
 
         Parameters
@@ -359,7 +344,7 @@ class RofiPubs:
 
         self._conn.send({"cmd": "add-reference", "library": library, "args": args})
 
-    def _add_bibfile_manual(self, library):
+    def _add_bibfile_manual(self, library: str):
         """Add publication to library by manual entry of bibfile.
 
         Parameters
@@ -381,26 +366,6 @@ class RofiPubs:
         args.docfile = doc
 
         self._conn.send({"cmd": "add-reference", "library": library, "args": args})
-
-    def _open_doc(self, repo, citekey):
-        """Open pdf file.
-
-        Parameters
-        ----------
-        library : str
-            Path to the configuration file of the library.
-        citekey : str
-            Citekey for the publication.
-
-        """
-        paper = repo.pull_paper(citekey)
-
-        docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
-        cmd = self._pdfviewer.split()
-        cmd.append(docpath)
-        subprocess.Popen(cmd)
-
-        return 1
 
     def _send_to_dptrp1(self, library, citekey):
         """Send document to Sony DPT-RP1

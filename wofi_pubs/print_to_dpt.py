@@ -185,7 +185,7 @@ class Document(object):
                 out_name = "".join(slugify(entry[ix]) + "_" for ix in struct)
                 break
             except LookupError:
-                raise Exception(f"Could not generate name for '{struct}'")
+                continue
 
         return PurePath(out_name + ".pdf")
 
