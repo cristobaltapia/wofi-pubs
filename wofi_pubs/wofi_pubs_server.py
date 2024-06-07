@@ -183,72 +183,76 @@ class PubsServer:
                         # while conn.poll():
                         msg = conn.recv()
                         print(msg)
-                        if msg["cmd"] == "get-publication-list":
-                            library = msg["library"]
-                            tag = msg["tag"]
-                            if tag:
-                                repo = self.repos[library]
-                                entries = self._gen_menu_entries(repo, tag)
-                                menu_entries, keys = zip(*entries)
-                                conn.send((menu_entries, keys))
-                            else:
-                                conn.send((self.entries[library], self.keys[library]))
-                            # Update the ui to point to the right library
-                            self.load_conf(library)
-                        elif msg["cmd"] == "get-publication-info":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            info = self._get_reference_info(library, citekey)
-                            conn.send(info)
-                        elif msg["cmd"] == "add-reference":
-                            library = msg["library"]
-                            args = msg["args"]
-                            self._add_reference(library, args)
-                        elif msg["cmd"] == "open-document":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._open_doc(library, citekey)
-                        elif msg["cmd"] == "edit-reference":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._edit_bib(library, citekey)
-                        elif msg["cmd"] == "export-reference":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._export_bib(library, citekey)
-                        elif msg["cmd"] == "get-tags":
-                            library = msg["library"]
-                            tags = list(self.repos[library].get_tags())
-                            conn.send(tags)
-                        elif msg["cmd"] == "add-tag":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            tag = msg["tag"]
-                            self._add_tag(tag, library, citekey)
-                            conn.send("Done")
-                        elif msg["cmd"] == "send-to-device":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            addr = msg["addr"]
-                            self._send_to_dptrp1(library, citekey, addr)
-                        elif msg["cmd"] == "send-per-email":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            send_doc_per_mail(self.repos[library], citekey)
-                        elif msg["cmd"] == "update-pdf-metadata":
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._update_pdf_metadata(library, citekey)
-                        elif msg["cmd"] == "update-list-order":
-                            library = msg["library"]
-                            index = msg["index"]
-                            print(f"Library: {library}; index: {index}")
-                            self.update_entries_order(index, library)
-                        elif msg["cmd"] == "restart-server":
-                            raise SystemExit
-                        else:
-                            running = False
-                            break
+
+                        match msg["cmd"]:
+                            case "get-publication-list":
+                                library = msg["library"]
+                                tag = msg["tag"]
+                                if tag:
+                                    repo = self.repos[library]
+                                    entries = self._gen_menu_entries(repo, tag)
+                                    menu_entries, keys = zip(*entries)
+                                    conn.send((menu_entries, keys))
+                                else:
+                                    conn.send(
+                                        (self.entries[library], self.keys[library])
+                                    )
+                                # Update the ui to point to the right library
+                                self.load_conf(library)
+                            case "get-publication-info":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                info = self._get_reference_info(library, citekey)
+                                conn.send(info)
+                            case "add-reference":
+                                library = msg["library"]
+                                args = msg["args"]
+                                self._add_reference(library, args)
+                            case "open-document":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._open_doc(library, citekey)
+                            case "edit-reference":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._edit_bib(library, citekey)
+                            case "export-reference":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._export_bib(library, citekey)
+                            case "get-tags":
+                                library = msg["library"]
+                                tags = list(self.repos[library].get_tags())
+                                conn.send(tags)
+                            case "add-tag":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                tag = msg["tag"]
+                                self._add_tag(tag, library, citekey)
+                                conn.send("Done")
+                            case "send-to-device":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                addr = msg["addr"]
+                                self._send_to_dptrp1(library, citekey, addr)
+                            case "send-per-email":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                send_doc_per_mail(self.repos[library], citekey)
+                            case "update-pdf-metadata":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._update_pdf_metadata(library, citekey)
+                            case "update-list-order":
+                                library = msg["library"]
+                                index = msg["index"]
+                                print(f"Library: {library}; index: {index}")
+                                self.update_entries_order(index, library)
+                            case "restart-server":
+                                raise SystemExit
+                            case _:
+                                running = False
+                                break
 
             except ConnectionResetError:
                 listener.close()
