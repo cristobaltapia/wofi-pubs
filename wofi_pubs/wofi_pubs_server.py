@@ -67,6 +67,7 @@ class PubsServer:
         # Initialize notifications
         Notify.init("Wofi-pubs")
         self.notification = None
+        self.last_key_idx: dict[str, int] = {}
 
         self._load_publications()
 
@@ -158,8 +159,10 @@ class PubsServer:
             menu_entries, keys = zip(*entries)
 
             self.entries[config_path] = [p for p in menu_entries]
-            self.keys[config_path] = keys
+            self.keys[config_path] = [k for k in keys]
             self.repos[config_path] = repo
+            # Set last entry item
+            self.last_key_idx[config_path] = 0
 
     def start_listening(self):
         """Start the listening loop of the server.
@@ -236,6 +239,11 @@ class PubsServer:
                             library = msg["library"]
                             citekey = msg["citekey"]
                             self._update_pdf_metadata(library, citekey)
+                        elif msg["cmd"] == "update-list-order":
+                            library = msg["library"]
+                            index = msg["index"]
+                            print(f"Library: {library}; index: {index}")
+                            self.update_entries_order(index, library)
                         elif msg["cmd"] == "restart-server":
                             raise SystemExit
                         else:
@@ -618,6 +626,20 @@ class PubsServer:
         docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
         doc = update_pdf_metadata(repo, citekey)
         events.PostCommandEvent().send()
+
+    def update_entries_order(self, idx: int, library: str):
+        """Reorder the list of entries and key to place the last selected element at the top.
+
+        Parameters
+        ----------
+        idx : int
+            The selected item.
+        library : str
+            The used library.
+
+        """
+        self.entries[library].insert(0, self.entries[library].pop(idx))
+        self.keys[library].insert(0, self.keys[library].pop(idx))
 
 
 def gen_citekey(repo: Repository, args: PubsArgs):

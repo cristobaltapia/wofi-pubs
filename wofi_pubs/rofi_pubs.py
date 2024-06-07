@@ -163,6 +163,10 @@ class RofiPubs:
                     self._conn.send(
                         {"cmd": "open-document", "library": library, "citekey": key_i}
                     )
+                    self._conn.send(
+                        {"cmd": "update-list-order", "library": library, "index": k}
+                    )
+                key = -1
             elif key == self.send_dpt_key:
                 self._send_to_dptrp1(library, citekey)
                 key = -1
