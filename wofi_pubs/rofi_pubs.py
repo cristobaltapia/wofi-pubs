@@ -153,7 +153,14 @@ class RofiPubs:
                 self._conn.send(
                     {"cmd": "edit-reference", "library": library, "citekey": citekey}
                 )
-                break
+                self._conn.send(
+                    {
+                        "cmd": "update-list-order",
+                        "library": library,
+                        "index": indices[0],
+                    }
+                )
+                key = -1
             if key == self.add_key:
                 self.menu_add(library)
                 key = -1
