@@ -1,18 +1,18 @@
 import re
-import time
 import subprocess
-import gi
 import sys
+import time
 import unicodedata
-from pathlib import Path, PurePath
-from os.path import expanduser
 from itertools import cycle
 from multiprocessing.pool import ThreadPool
+from os.path import expanduser
+from pathlib import Path, PurePath
+
+import gi
 
 gi.require_version("Notify", "0.7")
-from gi.repository import Notify
-
 from dptrp1.dptrp1 import DigitalPaper
+from gi.repository import Notify
 
 HOME = Path.home()
 
@@ -250,7 +250,9 @@ def to_dpt(repo, citekey, addr):
     # Update the notification while the file is being uploaded
     while not async_result.ready():
         time.sleep(1)
-        notification.update("Wofi-pubs", f"Sending {citekey} to device\n<b>{next(dots)}</b>")
+        notification.update(
+            "Wofi-pubs", f"Sending {citekey} to device\n<b>{next(dots)}</b>"
+        )
         notification.show()
 
     notification.close()

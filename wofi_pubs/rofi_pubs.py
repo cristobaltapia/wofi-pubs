@@ -11,6 +11,7 @@ from multiprocessing.connection import Client
 from os.path import expandvars
 
 import bibtexparser
+
 from wofi_pubs.rofi import Rofi
 
 from .dialogs import choose_file, choose_two_files, get_user_input

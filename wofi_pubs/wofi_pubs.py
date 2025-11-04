@@ -13,15 +13,7 @@ from multiprocessing.connection import Client
 from os.path import expandvars
 
 import bibtexparser
-# from pubs import content, events, plugins, uis
-# from pubs.bibstruct import extract_citekey
-# from pubs.commands.add_cmd import bibentry_from_api
-# from pubs.commands.add_cmd import command as add_cmd
-# from pubs.commands.edit_cmd import command as edit_cmd
-# from pubs.config import load_conf
-# from pubs.endecoder import EnDecoder
-# from pubs.repo import Repository
-# from pubs.uis import init_ui
+
 from wofi import Wofi
 
 from .dialogs import choose_file, choose_two_files, get_user_input
@@ -46,7 +38,7 @@ class WofiPubs:
         self._parse_config()
         self._libs_entries = dict()
         self.notification = None
-        self._conn = Client(('localhost', 6000))
+        self._conn = Client(("localhost", 6000))
 
         wofi_options = [
             "--allow-markup",
@@ -78,7 +70,7 @@ class WofiPubs:
         config_file = self._config
 
         with open(config_file, "r") as f:
-            file_content = '[general]\n' + f.read()
+            file_content = "[general]\n" + f.read()
 
         config_parser = configparser.RawConfigParser()
         config_parser.read_string(file_content)
@@ -200,11 +192,9 @@ class WofiPubs:
         menu_str = "".join(f"{ico}\t <b>{opt}</b>\0" for ico, opt in menu_)
         menu_str += "\0"
 
-        self._conn.send({
-            "cmd": "get-publication-info",
-            "library": library,
-            "citekey": citekey
-        })
+        self._conn.send(
+            {"cmd": "get-publication-info", "library": library, "citekey": citekey}
+        )
         paper_info = self._conn.recv()
 
         wofi_disp = menu_str + paper_info
@@ -217,41 +207,31 @@ class WofiPubs:
         option = menu_[selected[0]][1]
 
         if option == "Open":
-            self._conn.send({
-                "cmd": "open-document",
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {"cmd": "open-document", "library": library, "citekey": citekey}
+            )
         elif option == "Back":
             self.menu_main(library=library, tag=tag)
         elif option == "Edit":
-            self._conn.send({
-                "cmd": "edit-reference",
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {"cmd": "edit-reference", "library": library, "citekey": citekey}
+            )
         elif option == "Export":
-            self._conn.send({
-                "cmd": "export-reference",
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {"cmd": "export-reference", "library": library, "citekey": citekey}
+            )
         elif option == "Add tag":
             self._add_tag(library, citekey)
         elif option == "Send to DPT-RP1":
             self._send_to_dptrp1(library, citekey)
         elif option == "Send per E-Mail":
-            self._conn.send({
-                "cmd": "send-per-email",
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {"cmd": "send-per-email", "library": library, "citekey": citekey}
+            )
         elif option == "Update PDF metadata":
-            self._conn.send({
-                "cmd": "update-pdf-metadata",
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {"cmd": "update-pdf-metadata", "library": library, "citekey": citekey}
+            )
         # elif option == "More actions":
         #     self._ref_menu_more(repo, citekey)
         else:
@@ -466,12 +446,14 @@ class WofiPubs:
         new_tag = wofi.select_or_new("New tag...", tags)
 
         if new_tag != "":
-            self._conn.send({
-                "cmd": "add-tag",
-                "tag": new_tag,
-                "library": library,
-                "citekey": citekey
-            })
+            self._conn.send(
+                {
+                    "cmd": "add-tag",
+                    "tag": new_tag,
+                    "library": library,
+                    "citekey": citekey,
+                }
+            )
 
         self._conn.recv()
         self.menu_reference(library, citekey, None)
@@ -526,12 +508,14 @@ class WofiPubs:
 
         addr = menu_[selected_addr[0]][1]
 
-        self._conn.send({
-            "cmd": "send-to-device",
-            "addr": addr,
-            "library": library,
-            "citekey": citekey
-        })
+        self._conn.send(
+            {
+                "cmd": "send-to-device",
+                "addr": addr,
+                "library": library,
+                "citekey": citekey,
+            }
+        )
 
         self.menu_reference(library, citekey, tag=None)
 
@@ -573,7 +557,9 @@ def name_library(config_file):
 
 
 def main():
-    pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
+    pars = argparse.ArgumentParser(
+        description="Manage your pubs bibliography with wofi"
+    )
     pars.add_argument(
         "config",
         type=str,
