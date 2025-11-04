@@ -3,6 +3,7 @@ import configparser
 import json
 import os
 import subprocess
+import threading
 from multiprocessing.connection import Listener
 from os.path import expandvars
 
@@ -23,7 +24,7 @@ from .email import send_doc_per_mail
 from .print_to_dpt import show_sent_file, to_dpt
 from .update_metadata import update_pdf_metadata
 
-gi.require_version('Notify', '0.7')
+gi.require_version("Notify", "0.7")
 from gi.repository import GLib, Notify
 
 DEFAULT_CONFIG = expandvars("${XDG_CONFIG_HOME}/wofi-pubs/config")
@@ -55,17 +56,18 @@ class PubsServer:
 
     """
 
-    def __init__(self, config, loop=None):
+    def __init__(self, config):
         self._config = config
         self._parse_config()
         self._libs_entries = dict()
         self.notification = None
-        self.loop = loop
         self.entries: dict[str, list[str]] = dict()
         self.keys: dict[str, list[str]] = dict()
         self.repos: dict[str, Repository] = dict()
+        # Initialize notifications
         Notify.init("Wofi-pubs")
         self.notification = None
+        self.last_key_idx: dict[str, int] = {}
 
         self._load_publications()
 
@@ -74,7 +76,7 @@ class PubsServer:
         config_file = self._config
 
         with open(config_file, "r") as f:
-            file_content = '[general]\n' + f.read()
+            file_content = "[general]\n" + f.read()
 
         config_parser = configparser.RawConfigParser()
         config_parser.read_string(file_content)
@@ -89,6 +91,7 @@ class PubsServer:
             "cache_libs": "$HOME/.local/tmp/pubs_wofi_libs",
             "terminal_edit": "$TERM -e nvim",
             "editor": "$TERM -e nvim",
+            "picker": "wofi",
         }
 
         conf_ = config_parser["general"]
@@ -103,6 +106,7 @@ class PubsServer:
         self._terminal = conf_.get("TERMINAL_EDIT")
         self._editor = expandvars(conf_.get("editor"))
         self._dpt_devices = expandvars("${HOME}/.dpapp/devices.json")
+        self._picker = conf_.get("picker")
 
     def load_conf(self, library: str):
         """Load configuration file in pubs.
@@ -118,7 +122,7 @@ class PubsServer:
 
         """
         conf = load_conf(library)
-        conf['main']['edit_cmd'] = self._editor
+        conf["main"]["edit_cmd"] = self._editor
         conf.write()
         init_ui(conf)
         plugins.load_plugins(conf, uis._ui)
@@ -155,92 +159,100 @@ class PubsServer:
             menu_entries, keys = zip(*entries)
 
             self.entries[config_path] = [p for p in menu_entries]
-            self.keys[config_path] = keys
+            self.keys[config_path] = [k for k in keys]
             self.repos[config_path] = repo
+            # Set last entry item
+            self.last_key_idx[config_path] = 0
 
     def start_listening(self):
-        """Start the server.
+        """Start the listening loop of the server.
 
-        Thus function start the listening loop of the server. It listens for
-        requests from the client and executes the needed functions.
+        It listens for requests from the client and executes the needed functions.
 
         """
         while True:
-            listener = Listener(('localhost', 6000))
+            listener = Listener(("localhost", 6000))
             running = True
             # conn = listener.accept()
-            print(f'connection accepted from {listener.last_accepted}')
+            print(f"connection accepted from {listener.last_accepted}")
             try:
                 while running:
                     conn = listener.accept()
-                    print(f'connection accepted from {listener.last_accepted}')
+                    print(f"connection accepted from {listener.last_accepted}")
                     while True:
                         # while conn.poll():
                         msg = conn.recv()
                         print(msg)
-                        if msg["cmd"] == 'get-publication-list':
-                            library = msg["library"]
-                            tag = msg["tag"]
-                            if tag:
-                                repo = self.repos[library]
-                                entries = self._gen_menu_entries(repo, tag)
-                                menu_entries, keys = zip(*entries)
-                                conn.send((menu_entries, keys))
-                            else:
-                                conn.send((self.entries[library], self.keys[library]))
-                            # Update the ui to point to the right library
-                            self.load_conf(library)
-                        elif msg["cmd"] == 'get-publication-info':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            info = self._get_reference_info(library, citekey)
-                            conn.send(info)
-                        elif msg["cmd"] == 'add-reference':
-                            library = msg["library"]
-                            args = msg["args"]
-                            self._add_reference(library, args)
-                        elif msg["cmd"] == 'open-document':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._open_doc(library, citekey)
-                        elif msg["cmd"] == 'edit-reference':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._edit_bib(library, citekey)
-                        elif msg["cmd"] == 'export-reference':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._export_bib(library, citekey)
-                        elif msg["cmd"] == 'get-tags':
-                            library = msg["library"]
-                            tags = list(self.repos[library].get_tags())
-                            conn.send(tags)
-                        elif msg["cmd"] == 'add-tag':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            tag = msg["tag"]
-                            self._add_tag(tag, library, citekey)
-                            conn.send("Done")
-                        elif msg["cmd"] == 'send-to-device':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            addr = msg["addr"]
-                            self._send_to_dptrp1(library, citekey, addr)
-                        elif msg["cmd"] == 'send-per-email':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            send_doc_per_mail(self.repos[library], citekey)
-                        elif msg["cmd"] == 'update-pdf-metadata':
-                            library = msg["library"]
-                            citekey = msg["citekey"]
-                            self._update_pdf_metadata(library, citekey)
-                        else:
-                            running = False
-                            break
 
-                    # print("now updated!")
-                    # context = self.loop.get_context()
-                    # context.iteration()
+                        match msg["cmd"]:
+                            case "get-publication-list":
+                                library = msg["library"]
+                                tag = msg["tag"]
+                                if tag:
+                                    repo = self.repos[library]
+                                    entries = self._gen_menu_entries(repo, tag)
+                                    menu_entries, keys = zip(*entries)
+                                    conn.send((menu_entries, keys))
+                                else:
+                                    conn.send(
+                                        (self.entries[library], self.keys[library])
+                                    )
+                                # Update the ui to point to the right library
+                                self.load_conf(library)
+                            case "get-publication-info":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                info = self._get_reference_info(library, citekey)
+                                conn.send(info)
+                            case "add-reference":
+                                library = msg["library"]
+                                args = msg["args"]
+                                self._add_reference(library, args)
+                            case "open-document":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._open_doc(library, citekey)
+                            case "edit-reference":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._edit_bib(library, citekey)
+                            case "export-reference":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._export_bib(library, citekey)
+                            case "get-tags":
+                                library = msg["library"]
+                                tags = list(self.repos[library].get_tags())
+                                conn.send(tags)
+                            case "add-tag":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                tag = msg["tag"]
+                                self._add_tag(tag, library, citekey)
+                                conn.send("Done")
+                            case "send-to-device":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                addr = msg["addr"]
+                                self._send_to_dptrp1(library, citekey, addr)
+                            case "send-per-email":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                send_doc_per_mail(self.repos[library], citekey)
+                            case "update-pdf-metadata":
+                                library = msg["library"]
+                                citekey = msg["citekey"]
+                                self._update_pdf_metadata(library, citekey)
+                            case "update-list-order":
+                                library = msg["library"]
+                                index = msg["index"]
+                                print(f"Library: {library}; index: {index}")
+                                self.update_entries_order(index, library)
+                            case "restart-server":
+                                raise SystemExit
+                            case _:
+                                running = False
+                                break
 
             except ConnectionResetError:
                 listener.close()
@@ -360,28 +372,39 @@ class PubsServer:
         """
         bibdata = paper.bibdata
         if "author" in bibdata:
-            au = "; ".join(bibdata["author"])
+            author = "; ".join(bibdata["author"])
         elif "editor" in bibdata:
-            au = "; ".join(bibdata["editor"])
+            author = "; ".join(bibdata["editor"])
         elif "key" in bibdata:
-            au = bibdata["key"]
+            author = bibdata["key"]
         elif "organization" in bibdata:
-            au = bibdata["organization"]
+            author = bibdata["organization"]
         else:
-            au = "N.N."
+            author = "N.N."
 
         title = bibdata["title"]
         year = bibdata["year"]
         key = paper.citekey
+        _tags = paper.tags
+        if len(_tags) == 0:
+            tags = ""
+        else:
+            tags = "(" + ";".join(list(_tags)) + ")"
 
         metadata = paper.metadata
         if metadata["docfile"] is None:
-            pdf = ""
+            pdf = ""
         else:
-            pdf = ""
+            pdf = '<span foreground="#ebcb8b"></span>'
 
-        entry = (f"{pdf}<tt> </tt> ({year}) <b>{au}</b> \n" +
-                 f"<tt>   </tt><i>{title}</i>\0")
+        entry = (
+            f"<b>{title}</b>\n"
+            + f"      <i>{author}</i>\n"
+            + f'      <span foreground="#bf616a"><b>{year}</b></span> '
+            + f' {pdf} <span foreground="#a3be8c"><i>{tags}</i></span> '
+        )
+        if self._picker == "rofi":
+            entry += "\0"
 
         return entry, key
 
@@ -436,14 +459,18 @@ class PubsServer:
         ye = "Year:"
 
         if sub is None:
-            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
+            entry = (
+                f" <tt><b>{au:<11}</b></tt>\n{author}\0"
+                + f" <tt><b>{ti:<11}</b></tt>\n{title}\0"
+                + f" <tt><b>{ye:<11}</b></tt>\n{year}\0"
+            )
         else:
-            entry = (f" <tt><b>{au:<11}</b></tt>\n{author}\0" +
-                     f" <tt><b>{ti:<11}</b></tt>\n{title}\0" +
-                     f" <tt><b>{su:<11}</b></tt>\n{sub}\0" +
-                     f" <tt><b>{ye:<11}</b></tt>\n{year}\0")
+            entry = (
+                f" <tt><b>{au:<11}</b></tt>\n{author}\0"
+                + f" <tt><b>{ti:<11}</b></tt>\n{title}\0"
+                + f" <tt><b>{su:<11}</b></tt>\n{sub}\0"
+                + f" <tt><b>{ye:<11}</b></tt>\n{year}\0"
+            )
 
         return entry
 
@@ -578,10 +605,12 @@ class PubsServer:
         repo = self.repos[library]
         remote_path = to_dpt(repo, citekey, addr)
 
-        self.notification = Notify.Notification.new('Wofi-pubs',
-                                                    f'{citekey} sent to DPT-RP1')
-        self.notification.add_action("clicked", "Display file in device", show_sent_file,
-                                     (addr, remote_path))
+        self.notification = Notify.Notification.new(
+            "Wofi-pubs", f"{citekey} sent to DPT-RP1"
+        )
+        self.notification.add_action(
+            "clicked", "Display file in device", show_sent_file, (addr, remote_path)
+        )
         self.notification.show()
 
     def _update_pdf_metadata(self, library: str, citekey: str):
@@ -601,6 +630,20 @@ class PubsServer:
         docpath = content.system_path(repo.databroker.real_docpath(paper.docpath))
         doc = update_pdf_metadata(repo, citekey)
         events.PostCommandEvent().send()
+
+    def update_entries_order(self, idx: int, library: str):
+        """Reorder the list of entries and key to place the last selected element at the top.
+
+        Parameters
+        ----------
+        idx : int
+            The selected item.
+        library : str
+            The used library.
+
+        """
+        self.entries[library].insert(0, self.entries[library].pop(idx))
+        self.keys[library].insert(0, self.keys[library].pop(idx))
 
 
 def gen_citekey(repo: Repository, args: PubsArgs):
@@ -630,7 +673,9 @@ def gen_citekey(repo: Repository, args: PubsArgs):
 
 
 def main():
-    pars = argparse.ArgumentParser(description="Manage your pubs bibliography with wofi")
+    pars = argparse.ArgumentParser(
+        description="Manage your pubs bibliography with wofi"
+    )
     pars.add_argument(
         "config",
         type=str,
@@ -642,10 +687,12 @@ def main():
     arguments = pars.parse_args()
     config = arguments.config
 
-    # loop = GLib.MainLoop()
-    pubs_server = PubsServer(config, loop=None)
+    loop = GLib.MainLoop()
+    pubs_server = PubsServer(config)
+    # Run the GLib main loop in a separate thread
+    threading.Thread(target=loop.run, daemon=True).start()
+
     pubs_server.start_listening()
-    # loop.run()
 
 
 if __name__ == "__main__":
