@@ -1,6 +1,6 @@
 [project]
 name = "wofi-pubs"
-version = "0.10.2"
+version = "0.10.3"
 description = "Add your description here"
 readme = "README.md"
 authors = [
