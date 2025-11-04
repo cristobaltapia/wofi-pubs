@@ -34,11 +34,8 @@ Currently wofi-pubs has the following features:
 ```bash
 git clone https://github.com/cristobaltapia/wofi-pubs.git
 cd wofi-pubs
-make install
+uv build
 ```
-
-The default installation path for `wofi-pubs` is `~/.local/bin/wofi-pubs`, while the rest of the needed files is installed under `~/.local/lib/wofi-pubs/`.
-These directories can be modified with the environmental variables `INSTALL_BIN` and `INSTALL_LIB`, respectively.
 
 ## Configuration
 
