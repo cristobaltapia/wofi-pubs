@@ -17,8 +17,8 @@ from dptrp1.dptrp1 import DigitalPaper
 HOME = Path.home()
 
 # Default paths for the deviceid and privatekey files
-DPT_ID = HOME / ".dpapp/deviceid.dat"
-DPT_KEY = HOME / ".dpapp/privatekey.dat"
+DPT_ID = HOME / ".config/dpt/deviceid.dat"
+DPT_KEY = HOME / ".config/dpt/privatekey.dat"
 
 # Define folder structure for each type of document
 OUT_DEF = {
