@@ -1,37 +1,25 @@
-[tool.poetry]
+[project]
 name = "wofi-pubs"
-version = "0.9.1"
-description = "A wofi interface for the reference manager pubs"
-authors = ["Cristóbal Tapia Camú <crtapia@gmail.com>"]
-license = "MIT"
-readme = "Readme.md"
-homepage = "https://github.com/cristobaltapia/wofi-pubs"
-repository = "https://github.com/cristobaltapia/wofi-pubs"
-keywords = ["wofi", "pubs"]
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Cristóbal Tapia Camú", email = "crtapia@gmail.com" }
+]
+requires-python = ">=3.11.3"
+dependencies = [
+    "bibtexparser>=1.4.3",
+    "dpt-rp1-py>=0.1.18",
+    "pubs>=0.9.0",
+    "pygobject>=3.54.5",
+    "python-wofi>=0.3.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-pubs = ">=0.9.0"
-python-wofi = "^0.3.0"
-PyGObject = "^3.36.1"
-dpt-rp1-py = "^0.1.11"
-bibtexparser = "^1.4.0"
-
-[tool.poetry.dev-dependencies]
-isort = "^5.2.2"
-yapf = "^0.30.0"
-pydocstyle = "^5.0.2"
-
-[tool.poetry.scripts]
+[project.scripts]
 wofi-pubs = "wofi_pubs.wofi_pubs:main"
 rofi-pubs = "wofi_pubs.rofi_pubs:main"
 wofi-pubs-server = "wofi_pubs.wofi_pubs_server:main"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
-
-[virtualenvs]
-create = true
-path = "venv"
-
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"
