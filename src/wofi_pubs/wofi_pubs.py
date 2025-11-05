@@ -44,13 +44,13 @@ class WofiPubs:
             "--allow-markup",
             "--insensitive",
             "--matching=fuzzy",
-            "--line_wrap=word",
-            r"-Ddmenu-separator=\\",
+            "--define=line_wrap=word",
+            r"-Ddmenu-separator=\\0",
         ]
         wofi_options_ref = [
             "--allow-markup",
             "--insensitive",
-            r"-Ddmenu-separator=\\",
+            r"-Ddmenu-separator=\\0",
             "--define=line_wrap=word",
         ]
         wofi_options_misc = [
@@ -134,16 +134,16 @@ class WofiPubs:
         if tag:
             menu_.insert(0, ("", "Show all", ""))
 
-        menu_str = (f"{ico}\t <b>{opt}</b> {inf}\0" for ico, opt, inf in menu_)
+        menu_str = (f"{ico}\t <b>{opt}</b> {inf}" for ico, opt, inf in menu_)
 
         # Get publication list from server
         self._conn.send({"cmd": "get-publication-list", "library": library, "tag": tag})
         menu_entries, keys = self._conn.recv()
 
-        wofi_disp = (fr"{k}\ " for k in chain(menu_str, menu_entries))
+        wofi_disp = (f"{k}\0 " for k in chain(menu_str, menu_entries))
 
         wofi = self._wofi
-        wofi.width = 1200
+        wofi.width = 1000
         wofi.height = 700
         selected = wofi.select("Literature", wofi_disp, keep_newlines=True)
 
