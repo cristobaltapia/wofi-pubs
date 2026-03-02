@@ -9,6 +9,7 @@ from os.path import expanduser
 from pathlib import Path, PurePath
 
 import gi
+from pubs.repo import Repository
 
 gi.require_version("Notify", "0.7")
 from dptrp1.dptrp1 import DigitalPaper
@@ -58,14 +59,14 @@ class Document(object):
 
     """
 
-    def __init__(self, key, repo, lib_name):
+    def __init__(self, key: str, repo: Repository, lib_name: str):
         self._key = key
         self._repo = repo
         self._dpt_dir: str  # Remote directory
         self._bib = repo.databroker.pull_bibentry(self._key)
         self._lib_name = lib_name
 
-    def to_dptrp1(self, dpt):
+    def to_dptrp1(self, dpt: DigitalPaper, overwrite: bool = True):
         """Send the document to the DPT-RP1
 
         A specific file structure is respected.
@@ -73,7 +74,8 @@ class Document(object):
         Parameters
         ----------
         dpt : `obj`:DigitalPaper
-
+        overwrite : boll
+            Whether an existing document should be overwritten. (Default `True`.)
 
         """
         repo = self._repo
@@ -90,10 +92,20 @@ class Document(object):
         name_file = self._gen_file_name()
         remote_path = target_folder / name_file
 
-        dpt.new_folder(target_folder)
+        # Check existance of document in device
+        doc_exists = dpt.path_exists(str(remote_path))
 
-        with open(local_path, "rb") as fh:
-            dpt.upload(fh, str(remote_path))
+        if overwrite:
+            upload = True
+        elif not doc_exists:
+            upload = True
+        else:
+            upload = False
+
+        if upload:
+            dpt.new_folder(target_folder)
+            with open(local_path, "rb") as fh:
+                dpt.upload(fh, str(remote_path))
 
         return remote_path
 
@@ -214,7 +226,22 @@ def slugify(value):
     return re.sub(r"[-\s]+", "-", value)
 
 
-def to_dpt(repo, citekey, addr):
+def to_dpt(repo: Repository, citekey: str, addr: str):
+    """Send document from library to the DPT-RP1-like device.
+
+    The document is sent to the device only if the same document is not already
+    present in the device.
+
+    Parameters
+    ----------
+    repo :
+        The repository where the `citekey` is.
+    citekey : str
+        The citekey corresponding to the document.
+    addr : str
+        The address of the device.
+
+    """
     # Get the DPT IP address
     try:
         dpt_obj = connect_to_dpt(addr)
