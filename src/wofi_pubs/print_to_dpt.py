@@ -262,7 +262,7 @@ def to_dpt(repo: Repository, citekey: str, addr: str):
     # The thread is used in order to be able to have a notifcation updating
     # while the document is being sent.
     pool = ThreadPool(processes=1)
-    async_result = pool.apply_async(doc.to_dptrp1, (dpt_obj,))
+    async_result = pool.apply_async(doc.to_dptrp1, (dpt_obj, False))
 
     dots = cycle(["." * k for k in range(6)])
 
